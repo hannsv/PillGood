@@ -6,20 +6,20 @@ import {
   MD3LightTheme,
   Provider as PaperProvider,
 } from "react-native-paper";
-import { useCallback } from "react";
-
-import { DefaultTheme } from "react-native-paper";
+import React, { createContext, useCallback, useContext, useState } from "react";
 
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 
 import TodayPillPage from "./src/pages/TodayPillPage";
+import { PillContextType, PillDataType, PillListType } from "./src/type/type";
 
 const fontConfig = {
   fontFamily: "GmarketSansTTFMedium",
 };
 
 export default function App() {
+  const [pillDataList, setPilldataList] = useState();
   const [fontsLoaded] = useFonts({
     GmarketSansTTFMedium: require("./assets/fonts/GmarketSansTTFMedium.ttf"),
   });
@@ -29,12 +29,18 @@ export default function App() {
       await SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
-
   if (!fontsLoaded) {
     return null;
   }
 
-  // theme config
+  // context API
+  const PillContext = createContext<PillContextType>({
+    pilldata: [],
+    setPilldata: () => {}, // 더미 함수
+  });
+  const { pilldata, setPilldata } = useContext(PillContext);
+
+  // :: theme config Link ::
   // https://callstack.github.io/react-native-paper/docs/guides/theming
   const theme = {
     ...MD3LightTheme,
@@ -54,10 +60,12 @@ export default function App() {
 
   return (
     <PaperProvider theme={theme}>
-      <SafeAreaView onLayout={onLayoutRootView} style={styles.container}>
-        <StatusBar style="auto" />
-        <TodayPillPage />
-      </SafeAreaView>
+      <PillContext.Provider value={{ pilldata, setPilldata }}>
+        <SafeAreaView onLayout={onLayoutRootView} style={styles.container}>
+          <StatusBar style="auto" />
+          <TodayPillPage />
+        </SafeAreaView>
+      </PillContext.Provider>
     </PaperProvider>
   );
 }

@@ -124,8 +124,8 @@ export default function PillModal({ visible, closeModal }: PillModalProps) {
     setCurrentStep(2);
   };
 
-  const savePillList = (data: any) => {
-    setPillData(data.body.items);
+  const setPillList = (data: any) => {
+    console.log(data.body.items);
   };
 
   // 다음으로 버튼 이벤트
@@ -144,6 +144,7 @@ export default function PillModal({ visible, closeModal }: PillModalProps) {
       Alert.alert("약 이름을 입력해주세요.");
       setCurrentStep(1);
     }
+    // 등록하기 창으로 넘어가기
     if (searchPillName && currentStep === 3) {
       setCurrentStep(4);
     }
@@ -260,7 +261,7 @@ export default function PillModal({ visible, closeModal }: PillModalProps) {
           <View style={{ height: "90%" }}>
             <Appbar.Header>
               <Appbar.BackAction onPress={prevButton} />
-              <Appbar.Content title="저장하기" />
+              <Appbar.Content title="등록하기" />
             </Appbar.Header>
             <View style={styles.modalContent}>
               <Text>저장하기</Text>
@@ -278,7 +279,7 @@ export default function PillModal({ visible, closeModal }: PillModalProps) {
             <DefaultButton
               backgroundColor="green"
               text="등록하기"
-              onPress={savePillList}
+              onPress={() => setPillList(data)}
             />
           ) : (
             <DefaultButton
