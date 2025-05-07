@@ -139,7 +139,9 @@ export default function PillModal({ visible, closeModal }: PillModalProps) {
     // 절차.1 검색한다.
     // 절차.2 선택한다.
     // 절차.3 등록한다.
+
     if (searchPillName) {
+      // 검색어 키워드가 있으면 알림설정 창으로 넘어가는 걸 허용
       setCurrentStep(3);
     }
     if (!searchPillName) {
@@ -147,13 +149,15 @@ export default function PillModal({ visible, closeModal }: PillModalProps) {
     console.log(currentStep);
   };
 
-  // 뒤로가기
+  // 사용자 의도를 예측
+  // 뒤로가기 화살표 누를 시 페이지 조절
   const prevButton = () => {
     console.log(currentStep);
     if (currentStep > 1) {
       setCurrentStep((prev) => prev - 1);
     }
     if (currentStep === 1) {
+      // 검색모달이 첫 화면(약 검색하기)일 시 모달을 닫는다.
       closeModal();
     }
     if (currentStep === 3) {
@@ -184,7 +188,7 @@ export default function PillModal({ visible, closeModal }: PillModalProps) {
             <View style={styles.modalContent}>
               <Text
                 variant="headlineSmall"
-                style={{ textAlign: "center", width: "70%" }}
+                style={{ textAlign: "center", width: "70%", color: "black" }}
               >
                 약을 검색하거나 직접 등록하세요!
               </Text>
@@ -255,14 +259,14 @@ export default function PillModal({ visible, closeModal }: PillModalProps) {
 
         <View style={styles.buttonContainer}>
           <DefaultButton
-            backgroundColor="blue"
-            text="다음으로"
-            onPress={nextButton}
-          />
-          <DefaultButton
             backgroundColor="red"
             text="닫기"
             onPress={handleCloseModal}
+          />
+          <DefaultButton
+            backgroundColor="blue"
+            text="다음으로"
+            onPress={nextButton}
           />
         </View>
       </Modal>
