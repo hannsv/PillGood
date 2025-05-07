@@ -6,13 +6,12 @@ import {
   MD3LightTheme,
   Provider as PaperProvider,
 } from "react-native-paper";
-import React, { createContext, useCallback, useContext, useState } from "react";
-
+import React, { useCallback, useContext, useState } from "react";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 
 import TodayPillPage from "./src/pages/TodayPillPage";
-import { PillContextType, PillDataType, PillListType } from "./src/type/type";
+import { PillContext } from "./src/context/PillContext";
 
 const fontConfig = {
   fontFamily: "GmarketSansTTFMedium",
@@ -23,6 +22,7 @@ export default function App() {
   const [fontsLoaded] = useFonts({
     GmarketSansTTFMedium: require("./assets/fonts/GmarketSansTTFMedium.ttf"),
   });
+  const { pilldata, setPilldata } = useContext(PillContext);
 
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) {
@@ -34,11 +34,6 @@ export default function App() {
   }
 
   // context API
-  const PillContext = createContext<PillContextType>({
-    pilldata: [],
-    setPilldata: () => {}, // 더미 함수
-  });
-  const { pilldata, setPilldata } = useContext(PillContext);
 
   // :: theme config Link ::
   // https://callstack.github.io/react-native-paper/docs/guides/theming

@@ -1,9 +1,10 @@
 import { View, StyleSheet } from "react-native";
 import { Button, Modal, Portal, useTheme, Text } from "react-native-paper";
 import PillModal from "../components/PillModal";
-import { ContextType, useContext, useState } from "react";
+import { ContextType, createContext, useContext, useState } from "react";
 import DefaultButton from "../components/DefaultButton";
-import { PillContext } from "../type/type";
+import { PillContextType } from "../type/type";
+import { PillContext } from "../context/PillContext";
 
 export default function TodayPillPage() {
   const [modalVisible, setModalVisible] = useState<boolean>(true);

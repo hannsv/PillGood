@@ -1,5 +1,3 @@
-import { createContext } from "react";
-
 export type PillDataType = {
   company: string;
   pillName: string;
@@ -24,6 +22,3 @@ export type PillContextType = {
   pilldata: PillListType[];
   setPilldata: React.Dispatch<React.SetStateAction<PillListType[]>>;
 };
-
-// PillContext.ts
-export const PillContext = createContext<PillContextType | null>(null);
