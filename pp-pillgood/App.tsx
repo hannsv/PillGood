@@ -22,6 +22,7 @@ export default function App() {
   const [fontsLoaded] = useFonts({
     GmarketSansTTFMedium: require("./assets/fonts/GmarketSansTTFMedium.ttf"),
   });
+  // useContext는 최상단에 위치해야 한다.
   const { pilldata, setPilldata } = useContext(PillContext);
 
   const onLayoutRootView = useCallback(async () => {
