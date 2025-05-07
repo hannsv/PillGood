@@ -21,7 +21,7 @@ export default function TodayPillPage() {
         style={[styles.createBtn, { backgroundColor: colors.primary }]}
         onPress={openModal}
       >
-        <Text>asd</Text>
+        <Text>버튼</Text>
       </Button>
       <PillModal visible={modalVisible} closeModal={closeModal} />
     </View>

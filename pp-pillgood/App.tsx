@@ -34,13 +34,16 @@ export default function App() {
     return null;
   }
 
+  // theme config
+  // https://callstack.github.io/react-native-paper/docs/guides/theming
   const theme = {
     ...MD3LightTheme,
     colors: {
       ...MD3LightTheme.colors,
       primary: "#356562",
-
       surface: "#356562",
+      onSurface: "#ffffff",
+      onSurfaceVariant: "#ffffff",
       surfaceVariant: "#5daca5",
       tertiary: "white",
       accent: "#03dac4",
