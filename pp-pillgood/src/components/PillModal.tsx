@@ -1,15 +1,5 @@
 import { useEffect, useState } from "react";
-import {
-  Appbar,
-  Button,
-  FAB,
-  Modal,
-  Portal,
-  Props,
-  Text,
-  TextInput,
-  useTheme,
-} from "react-native-paper";
+import { Appbar, Modal, Portal, Text, TextInput } from "react-native-paper";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import DefaultButton from "./DefaultButton";
 import TimePickerComponent from "./TimePickerComponent";
@@ -134,19 +124,29 @@ export default function PillModal({ visible, closeModal }: PillModalProps) {
     setCurrentStep(2);
   };
 
+  const savePillList = (data: any) => {
+    setPillData(data.body.items);
+  };
+
   // 다음으로 버튼 이벤트
   const nextButton = () => {
     // 절차.1 검색한다.
     // 절차.2 선택한다.
     // 절차.3 등록한다.
+    setCurrentStep((prev) => prev + 1);
+    console.log(currentStep);
 
     if (searchPillName) {
       // 검색어 키워드가 있으면 알림설정 창으로 넘어가는 걸 허용
       setCurrentStep(3);
     }
     if (!searchPillName) {
+      Alert.alert("약 이름을 입력해주세요.");
+      setCurrentStep(1);
     }
-    console.log(currentStep);
+    if (searchPillName && currentStep === 3) {
+      setCurrentStep(4);
+    }
   };
 
   // 사용자 의도를 예측
@@ -256,18 +256,37 @@ export default function PillModal({ visible, closeModal }: PillModalProps) {
             </View>
           </View>
         )}
+        {currentStep === 4 && (
+          <View style={{ height: "90%" }}>
+            <Appbar.Header>
+              <Appbar.BackAction onPress={prevButton} />
+              <Appbar.Content title="저장하기" />
+            </Appbar.Header>
+            <View style={styles.modalContent}>
+              <Text>저장하기</Text>
+            </View>
+          </View>
+        )}
 
         <View style={styles.buttonContainer}>
           <DefaultButton
-            backgroundColor="red"
+            backgroundColor="gray"
             text="닫기"
             onPress={handleCloseModal}
           />
-          <DefaultButton
-            backgroundColor="blue"
-            text="다음으로"
-            onPress={nextButton}
-          />
+          {currentStep === 4 ? (
+            <DefaultButton
+              backgroundColor="green"
+              text="등록하기"
+              onPress={savePillList}
+            />
+          ) : (
+            <DefaultButton
+              backgroundColor="blue"
+              text="다음으로"
+              onPress={nextButton}
+            />
+          )}
         </View>
       </Modal>
     </Portal>
