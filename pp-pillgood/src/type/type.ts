@@ -12,11 +12,13 @@ export type PillDataType = {
   imageUrl: string;
 };
 
-export type PillListType = {
-  id: string;
+export interface PillListType {
+  id: number;
   name: string;
+  dose: string;
   time: string;
-};
+  taken: boolean;
+}
 
 export type PillContextType = {
   pilldata: PillListType[];

@@ -1,21 +1,29 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, StyleSheet, Modal, ScrollView, Pressable } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  Modal,
+  ScrollView,
+  Pressable,
+} from "react-native";
 
 import getPillNameData from "../../api/getPillNameData";
 import { setModelData } from "../../model/pillModel";
 
 const PillListModal = ({ items, callbackSelectedBtn }) => {
-
   const [count, setCount] = useState(0);
   const [data, setData] = useState([]);
+
+
 
   useEffect(() => {
     // model을 map으로 전달받도록 해놓아서 배열을 받아야 함.
     const fetchData = async () => {
-      console.log("items type is", typeof (items))
+      console.log("items type is", typeof items);
       try {
         if (items === null) {
-          console.log("items is null")
+          console.log("items is null");
           return null;
         }
         const itemsArr = Array.isArray(items) ? items : [items];
@@ -32,7 +40,6 @@ const PillListModal = ({ items, callbackSelectedBtn }) => {
           console.log("totalCount :", totalCount);
           setData(pillDataArray);
         }
-
       } catch (error) {
         console.error("fetch error :", error);
       }
@@ -42,11 +49,13 @@ const PillListModal = ({ items, callbackSelectedBtn }) => {
 
   // 버튼을 누르면 선택 결과를 콜백
   const handlebtn = (data) => {
-    console.log(data, "callback data")
+    // console.log(data, "callback data")
     callbackSelectedBtn(data);
-  }
-  return (
+  };
 
+
+
+  return (
     <View style={styles.container}>
       {/* 결과가 없을 때 */}
       {count === 0 && data === null && (
@@ -56,13 +65,17 @@ const PillListModal = ({ items, callbackSelectedBtn }) => {
       )}
       {/* 결과 하나일 때 */}
       {count === 1 && data.length > 0 && (
-        <Pressable style={styles.buttonStyle} onPress={() => handlebtn(data[0].items[0])}>
+        <Pressable
+          style={styles.buttonStyle}
+          onPress={() => handlebtn(data[0].items[0])}
+        >
           <Text style={styles.textSty}>{data[0].items[0].name}</Text>
         </Pressable>
       )}
       {/* 결과가 다수일 때 */}
-      {count > 1 && data.length > 0 &&
-        data.map((items, index) => (
+      {count > 1 &&
+        data.length > 0 &&
+        data.map((items, index) =>
           items.items.map((innerItem, innerIndex) => (
             <Pressable key={innerIndex} onPress={() => handlebtn(innerItem)}>
               {/* 약 이름으로 고르도록 이름만 렌더링 */}
@@ -71,11 +84,10 @@ const PillListModal = ({ items, callbackSelectedBtn }) => {
               </View>
             </Pressable>
           ))
-        ))
-      }
+        )}
     </View>
   );
-}
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -88,11 +100,11 @@ const styles = StyleSheet.create({
     backgroundColor: "pink",
     margin: 10,
     padding: 10,
-  }
-  , textSty: {
+  },
+  textSty: {
     fontSize: 20,
     fontWeight: "bold",
-  }
-})
+  },
+});
 
 export default PillListModal;

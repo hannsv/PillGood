@@ -42,7 +42,7 @@ export default function TimePickerComponent() {
           onTouchCancel={() => setShow(false)}
         />
       )}
-
+      {/* 데이피커 */}
       <DayPickerComp />
     </View>
   );

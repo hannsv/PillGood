@@ -27,6 +27,13 @@ export default function TodayPillPage() {
         <Text>버튼</Text>
       </Button>
       <PillModal visible={modalVisible} closeModal={closeModal} />
+      {pilldata.map((pill) => (
+        <View key={pill.id} style={{ margin: 8 }}>
+          <Text>
+            {pill.name} - {pill.dose} - {pill.time}
+          </Text>
+        </View>
+      ))}
     </View>
   );
 }

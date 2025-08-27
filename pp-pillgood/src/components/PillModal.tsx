@@ -1,8 +1,16 @@
-import { useEffect, useState } from "react";
-import { Appbar, Modal, Portal, Text, TextInput } from "react-native-paper";
+import { useContext, useEffect, useState } from "react";
+import {
+  Appbar,
+  Chip,
+  Modal,
+  Portal,
+  Text,
+  TextInput,
+} from "react-native-paper";
 import { Alert, ScrollView, StyleSheet, View } from "react-native";
 import DefaultButton from "./DefaultButton";
 import TimePickerComponent from "./TimePickerComponent";
+import { PillContext } from "../context/PillContext";
 
 interface PillModalProps {
   visible: boolean;
@@ -95,6 +103,27 @@ export default function PillModal({ visible, closeModal }: PillModalProps) {
   const [pillData, setPillData] = useState([]);
   const [loading, setLoading] = useState(false);
 
+  const [pillName, setPillName] = useState("");
+  const [pillDose, setPillDose] = useState("");
+  const [pillTime, setPillTime] = useState("");
+
+  const { setPilldata } = useContext(PillContext); // 추가
+
+  const handleRegister = () => {
+    const newPill = {
+      id: Date.now(),
+      name: pillName,
+      dose: pillDose,
+      time: pillTime,
+      taken: false,
+    };
+    setPilldata((prev) => [...prev, newPill]);
+    closeModal();
+    setPillName("");
+    setPillDose("");
+    setPillTime("");
+  };
+
   useEffect(() => {
     // const fetchData = async () => {
     //   try {
@@ -124,10 +153,6 @@ export default function PillModal({ visible, closeModal }: PillModalProps) {
     setCurrentStep(2);
   };
 
-  const setPillList = (data: any) => {
-    console.log(data.body.items);
-  };
-
   // 다음으로 버튼 이벤트
   const nextButton = () => {
     // 절차.1 검색한다.
@@ -150,7 +175,7 @@ export default function PillModal({ visible, closeModal }: PillModalProps) {
     }
   };
 
-  // 사용자 의도를 예측
+  // 사용자 의도대로
   // 뒤로가기 화살표 누를 시 페이지 조절
   const prevButton = () => {
     console.log(currentStep);
@@ -253,6 +278,7 @@ export default function PillModal({ visible, closeModal }: PillModalProps) {
               <Appbar.Content title="알림 설정" />
             </Appbar.Header>
             <View style={styles.modalContent}>
+              {/* 타임피커 + 데이피커 */}
               <TimePickerComponent />
             </View>
           </View>
@@ -264,7 +290,8 @@ export default function PillModal({ visible, closeModal }: PillModalProps) {
               <Appbar.Content title="등록하기" />
             </Appbar.Header>
             <View style={styles.modalContent}>
-              <Text>저장하기</Text>
+              <Chip>{searchPillName}</Chip>
+              <Text style={{ color: "black" }}>약을 등록하시겠습니까?</Text>
             </View>
           </View>
         )}
@@ -279,7 +306,7 @@ export default function PillModal({ visible, closeModal }: PillModalProps) {
             <DefaultButton
               backgroundColor="green"
               text="등록하기"
-              onPress={() => setPillList(data)}
+              onPress={handleRegister} // 여기서 handleRegister로 변경
             />
           ) : (
             <DefaultButton

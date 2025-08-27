@@ -13,17 +13,26 @@ import * as SplashScreen from "expo-splash-screen";
 import TodayPillPage from "./src/pages/TodayPillPage";
 import { PillContext } from "./src/context/PillContext";
 
+import { PillListType } from "./src/type/type";
+
 const fontConfig = {
   fontFamily: "GmarketSansTTFMedium",
 };
 
+/**
+ *
+ * @todo
+ * 1. context API를 사용하여 pilldata를 관리한다.
+ * 2. context api 테스트
+ *
+ */
+
 export default function App() {
-  const [pillDataList, setPilldataList] = useState();
+  const [pilldata, setPilldata] = useState<PillListType[]>([]); // 타입 명확히
   const [fontsLoaded] = useFonts({
     GmarketSansTTFMedium: require("./assets/fonts/GmarketSansTTFMedium.ttf"),
   });
   // useContext는 최상단에 위치해야 한다.
-  const { pilldata, setPilldata } = useContext(PillContext);
 
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) {
@@ -53,6 +62,8 @@ export default function App() {
     },
     fonts: configureFonts({ config: fontConfig }),
   };
+
+
 
   return (
     <PaperProvider theme={theme}>
