@@ -1,6 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, Text, View } from "react-native";
-import NavBar from "./src/components/nav/NavBar";
+import { BottomNavigation } from "./src/components/nav/BottomNavigation";
 
 export default function App() {
   return (
@@ -11,7 +11,10 @@ export default function App() {
         <Text>Welcome to PillGood!</Text>
       </View>
       {/* 하단 네비게이션 바 */}
-      <NavBar />
+      <BottomNavigation
+        currentScreen="home"
+        onNavigate={(screen) => console.log(screen)}
+      />
     </View>
   );
 }
