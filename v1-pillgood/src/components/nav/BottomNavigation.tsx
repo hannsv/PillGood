@@ -1,29 +1,27 @@
 import React from "react";
 import { View, Pressable, Text, StyleSheet } from "react-native";
-import { Camera } from "lucide-react-native";
+import { Camera, Home, Search, Bell, FileText } from "lucide-react-native";
 
 interface BottomNavigationProps {
   currentScreen: string;
   onNavigate: (screen: string) => void;
 }
 
-export function BottomNavigation() {
-  //   currentScreen,
-  //   onNavigate,
-  // }: BottomNavigationProps) {
-  //   const navItems = [
-  //     { id: "home", icon: Home, label: "Home" },
-  //     { id: "search", icon: Search, label: "Search" },
-  //     { id: "notifications", icon: Bell, label: "Notifications" },
-  //     { id: "records", icon: FileText, label: "Records" },
-  //   ];
+export function BottomNavigation({
+  currentScreen,
+  onNavigate,
+}: BottomNavigationProps) {
+  const navItems = [
+    { id: "home", icon: Home, label: "Home" },
+    { id: "search", icon: Search, label: "Search" },
+    { id: "notifications", icon: Bell, label: "Notifications" },
+    { id: "records", icon: FileText, label: "Records" },
+  ];
 
   return (
     <View style={styles.container}>
       <View style={styles.nav}>
-        <Camera size={24} color={"#6b7280"} />
-        {/* <Home /> */}
-        {/* {navItems.map(({ id, icon: Icon, label }) => (
+        {navItems.map(({ id, icon: Icon, label }) => (
           <Pressable
             key={id}
             onPress={() => onNavigate(id)}
@@ -42,7 +40,7 @@ export function BottomNavigation() {
               {label}
             </Text>
           </Pressable>
-        ))} */}
+        ))}
       </View>
     </View>
   );
