@@ -1,19 +1,15 @@
 import * as React from "react";
 import { BottomNavigation, Text } from "react-native-paper";
-
-const MusicRoute = () => <Text>Music</Text>;
-const AlbumsRoute = () => <Text>Albums</Text>;
-const RecentsRoute = () => <Text>Recents</Text>;
-const NotificationsRoute = () => <Text>Notifications</Text>;
+import PillScreen from "../../screens/PillScreen";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 function BottomNavBar() {
   const [index, setIndex] = React.useState(0);
   const [routes] = React.useState([
     {
-      key: "music",
-      title: "Favorites",
-      focusedIcon: "heart",
-      unfocusedIcon: "heart-outline",
+      key: "pill",
+      title: "약",
+      focusedIcon: "pill",
     },
     { key: "albums", title: "Albums", focusedIcon: "album" },
     { key: "recents", title: "Recents", focusedIcon: "history" },
@@ -25,8 +21,13 @@ function BottomNavBar() {
     },
   ]);
 
+  const PillRoute = () => <PillScreen />;
+  const AlbumsRoute = () => <Text>Albums</Text>;
+  const RecentsRoute = () => <Text>Recents</Text>;
+  const NotificationsRoute = () => <Text>Notifications</Text>;
+
   const renderScene = BottomNavigation.SceneMap({
-    music: MusicRoute,
+    pill: PillRoute,
     albums: AlbumsRoute,
     recents: RecentsRoute,
     notifications: NotificationsRoute,
