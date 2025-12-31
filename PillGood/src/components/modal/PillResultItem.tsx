@@ -1,3 +1,9 @@
+import { Card, Text } from "react-native-paper";
+
 export default function PillResultItem() {
-  return null;
+  return (
+    <>
+      <Card>card</Card>
+    </>
+  );
 }

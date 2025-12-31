@@ -1,4 +1,11 @@
-import { Button, Modal, Portal, Text, TextInput } from "react-native-paper";
+import {
+  Button,
+  Modal,
+  Portal,
+  Searchbar,
+  Text,
+  TextInput,
+} from "react-native-paper";
 import { StyleSheet } from "react-native";
 import { useState } from "react";
 
@@ -25,10 +32,10 @@ function AddPillModal({
         <Text variant="titleLarge" style={{ marginBottom: 20 }}>
           약 등록
         </Text>
-        <TextInput
-          label="약 이름"
+        <Searchbar
           value={pillName}
           onChangeText={setPillName}
+          placeholder="약 이름을 입력하세요"
           style={{ marginBottom: 10 }}
         />
         <Button
