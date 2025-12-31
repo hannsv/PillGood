@@ -5,11 +5,13 @@ import BottomNavBar from "./src/components/nav/BottomNavBar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { PaperProvider } from "react-native-paper";
 
+import { theme } from "./theme";
+
 export default function App() {
   console.log("API Key:", API_KEY);
   return (
     <SafeAreaProvider>
-      <PaperProvider>
+      <PaperProvider theme={theme}>
         <View style={styles.container}>
           <BottomNavBar />
         </View>

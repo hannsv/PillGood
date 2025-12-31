@@ -1,7 +1,6 @@
 import * as React from "react";
 import { BottomNavigation, Text } from "react-native-paper";
 import PillScreen from "../../screens/PillScreen";
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 
 function BottomNavBar() {
   const [index, setIndex] = React.useState(0);
@@ -11,11 +10,11 @@ function BottomNavBar() {
       title: "약",
       focusedIcon: "pill",
     },
-    { key: "albums", title: "Albums", focusedIcon: "album" },
-    { key: "recents", title: "Recents", focusedIcon: "history" },
+    { key: "albums", title: "최근기록", focusedIcon: "album" },
+    { key: "recents", title: "검색", focusedIcon: "history" },
     {
       key: "notifications",
-      title: "Notifications",
+      title: "설정",
       focusedIcon: "bell",
       unfocusedIcon: "bell-outline",
     },
