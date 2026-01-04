@@ -53,6 +53,7 @@ function AddPillModal({
 
 const styles = StyleSheet.create({
   modalContent: {
+    backgroundColor: "white",
     padding: 20,
     margin: 20,
     borderRadius: 8,

@@ -8,6 +8,7 @@ import { API_KEY } from "@env";
 import { PaperProvider } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "./theme";
+import TopWidget from "./src/components/widget/TopWidget";
 
 export default function App() {
   console.log("API Key:", API_KEY);
@@ -20,6 +21,7 @@ export default function App() {
         }}
       >
         <View style={styles.container}>
+          <TopWidget />
           <BottomNavBar />
         </View>
       </PaperProvider>
