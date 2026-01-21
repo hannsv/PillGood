@@ -14,6 +14,7 @@ function PillListScreen() {
 
   return (
     <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      {/* 화면 상태 : 약 추가 */}
       {screenState === "add" ? (
         <AddPillModal visible={visible} onDismiss={() => setVisible(false)} />
       ) : null}
