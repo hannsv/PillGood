@@ -9,6 +9,7 @@ import {
 import { StyleSheet, View } from "react-native";
 import { useState } from "react";
 import PillResultList, { PillResultListProps } from "./PillResultList";
+import TimePickerSection from "./TimePickerSection";
 
 // 단계
 type Step = "search" | "results" | "detail" | "setting";
@@ -21,16 +22,25 @@ export interface PillResult {
   isCustom?: boolean; // 직접 입력한 값인지 여부
 }
 
+export interface RegisteredPill extends PillResult {
+  time: Date;
+  isActive: boolean;
+}
+
 function AddPillModal({
   visible,
   onDismiss,
+  onAddPill,
 }: {
   visible: boolean;
   onDismiss: () => void;
+  onAddPill: (pill: RegisteredPill) => void;
 }) {
   const [step, setStep] = useState<Step>("search");
   const [pillName, setPillName] = useState("");
   const [searchResults, setSearchResults] = useState<PillResult[]>([]);
+  const [selectedPill, setSelectedPill] = useState<PillResult | null>(null);
+  const [alarmTime, setAlarmTime] = useState(new Date());
 
   // 모달이 닫힐 때 상태 초기화
   const handleDismiss = () => {
@@ -38,6 +48,19 @@ function AddPillModal({
     setStep("search");
     setPillName("");
     setSearchResults([]);
+    setSelectedPill(null);
+    setAlarmTime(new Date());
+  };
+
+  const handleComplete = () => {
+    if (selectedPill) {
+      onAddPill({
+        ...selectedPill,
+        time: alarmTime,
+        isActive: true,
+      });
+      handleDismiss();
+    }
   };
 
   const handleSearch = () => {
@@ -67,6 +90,12 @@ function AddPillModal({
     // 3. 입력값(custom)을 맨 앞에 두고 합치기
     setSearchResults([customResult, ...apiResults]);
     setStep("results");
+  };
+
+  const handleSelectPill = (pill: PillResult) => {
+    console.log("Selected pill:", pill);
+    setSelectedPill(pill);
+    setStep("setting");
   };
 
   const handleBack = () => {
@@ -123,20 +152,27 @@ function AddPillModal({
           {/* Step 2: 검색 결과 */}
           {step === "results" && (
             <View style={styles.centerContainer}>
-              {PillResultList && <PillResultList data={searchResults} />}
-              <Button mode="outlined" onPress={() => setStep("setting")}>
-                (임시) 선택하여 설정으로 이동
-              </Button>
+              <PillResultList
+                data={searchResults}
+                onSelect={handleSelectPill}
+              />
             </View>
           )}
 
           {/* Step 3: 알림 설정 */}
           {step === "setting" && (
             <View style={styles.centerContainer}>
-              <Text style={{ marginBottom: 20 }}>
-                시간 및 알림 설정 화면입니다.
+              <Text variant="headlineSmall" style={{ marginBottom: 10 }}>
+                {selectedPill?.name}
               </Text>
-              <Button mode="contained" onPress={handleDismiss}>
+
+              <TimePickerSection date={alarmTime} onChange={setAlarmTime} />
+
+              <Button
+                mode="contained"
+                onPress={handleComplete}
+                style={{ marginTop: 20, width: "100%" }}
+              >
                 등록 완료
               </Button>
             </View>
@@ -149,7 +185,7 @@ function AddPillModal({
 
 const styles = StyleSheet.create({
   modalContent: {
-    flex: 0.8,
+    flex: 0.9,
     backgroundColor: "white",
     margin: 30,
     padding: 0,
