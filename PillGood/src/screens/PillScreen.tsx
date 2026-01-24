@@ -20,8 +20,8 @@ function PillListScreen() {
   const theme = useTheme();
 
   const [pillList, setPillList] = useState<RegisteredPill[]>([]);
-  // 오늘 복용 완료한 약 ID 목록 (실제 앱에서는 날짜별로 관리 필요)
-  const [completedPills, setCompletedPills] = useState<string[]>([]);
+  // 완료된 작업 목록: "pillId_slot" 형식의 문자열 배열
+  const [completedTasks, setCompletedTasks] = useState<string[]>([]);
 
   const handleAddPill = (newPill: RegisteredPill) => {
     setPillList((prev) => [...prev, newPill]);
@@ -36,27 +36,52 @@ function PillListScreen() {
     );
   };
 
-  const handleCompletePill = (id: string) => {
-    setCompletedPills((prev) => [...prev, id]);
+  const handleCompleteTask = (pillId: string, slot: TimeSlot) => {
+    const key = `${pillId}_${slot}`;
+    if (!completedTasks.includes(key)) {
+      setCompletedTasks((prev) => [...prev, key]);
+    }
   };
 
-  // 다음 복용할 약 계산 (슬롯 기반으로 단순화)
-  // 실제 구현시에는 '현재 시간'과 '슬롯의 시간'을 비교해야 합니다.
-  const getNextPill = (): RegisteredPill | null => {
-    // 1. 활성화되어 있고 && 아직 복용하지 않은 약 필터링
-    const candidates = pillList.filter(
-      (pill) => pill.isActive && !completedPills.includes(pill.id),
-    );
+  // 다음 복용할 약 계산:
+  // 모든 활성화된 약의 슬롯 중, 아직 완료되지 않은 가장 이른 슬롯을 찾음
+  const getNextPill = (): { pill: RegisteredPill; slot: TimeSlot } | null => {
+    const slotOrder: TimeSlot[] = ["morning", "lunch", "dinner", "bedtime"];
 
-    if (candidates.length === 0) return null;
+    // { pill, slot, orderIndex } 목록 생성
+    const allPending: {
+      pill: RegisteredPill;
+      slot: TimeSlot;
+      orderIndex: number;
+    }[] = [];
 
-    // TODO: 정확한 시간 비교 로직 필요. 지금은 단순히 리스트 첫번째
-    return candidates[0];
+    pillList
+      .filter((p) => p.isActive)
+      .forEach((pill) => {
+        pill.slots.forEach((slot) => {
+          const key = `${pill.id}_${slot}`;
+          if (!completedTasks.includes(key)) {
+            allPending.push({
+              pill,
+              slot,
+              orderIndex: slotOrder.indexOf(slot),
+            });
+          }
+        });
+      });
+
+    // 슬롯 순서대로 정렬
+    allPending.sort((a, b) => a.orderIndex - b.orderIndex);
+
+    if (allPending.length > 0) {
+      return { pill: allPending[0].pill, slot: allPending[0].slot };
+    }
+    return null;
   };
 
-  const nextPill = getNextPill();
+  const nextTarget = getNextPill();
 
-  const renderSlotIcons = (slots: TimeSlot[], isCompleted: boolean) => {
+  const renderSlotIcons = (slots: TimeSlot[], pillId: string) => {
     const allSlots: TimeSlot[] = ["morning", "lunch", "dinner", "bedtime"];
 
     // 아이콘 매핑
@@ -70,20 +95,22 @@ function PillListScreen() {
     return (
       <View style={{ flexDirection: "row", marginTop: 5 }}>
         {allSlots.map((slot) => {
-          const isActive = slots.includes(slot);
+          const isAssigned = slots.includes(slot);
+          const isDone = completedTasks.includes(`${pillId}_${slot}`);
+
+          if (!isAssigned) return null;
+
           return (
             <IconButton
               key={slot}
               icon={icons[slot]}
               size={20}
               iconColor={
-                isActive
-                  ? isCompleted
-                    ? theme.colors.outline // 완료되었으면 흐리게
-                    : theme.colors.primary // 할당된 슬롯은 primary
-                  : theme.colors.surfaceVariant // 할당 안된 슬롯은 연하게
+                isDone
+                  ? theme.colors.outline // 완료됨
+                  : theme.colors.primary // 해야함
               }
-              style={{ margin: 0, opacity: isActive ? 1 : 0.3 }}
+              style={{ margin: 0, opacity: isDone ? 0.3 : 1 }}
             />
           );
         })}
@@ -92,13 +119,16 @@ function PillListScreen() {
   };
 
   const renderPillItem = ({ item }: { item: RegisteredPill }) => {
-    const isCompleted = completedPills.includes(item.id);
+    const allDone = item.slots.every((s) =>
+      completedTasks.includes(`${item.id}_${s}`),
+    );
 
     return (
       <Card
         style={[
           styles.card,
-          isCompleted && { backgroundColor: "#f0f0f0", opacity: 0.6 },
+          !item.isActive && { opacity: 0.5 },
+          item.isActive && allDone && { backgroundColor: "#f0f0f0" },
         ]}
       >
         <Card.Content style={styles.cardContent}>
@@ -107,7 +137,11 @@ function PillListScreen() {
               variant="titleMedium"
               style={[
                 styles.pillName,
-                isCompleted && { textDecorationLine: "line-through" },
+                item.isActive &&
+                  allDone && {
+                    textDecorationLine: "line-through",
+                    color: "gray",
+                  },
               ]}
             >
               {item.name}
@@ -118,13 +152,12 @@ function PillListScreen() {
               </Text>
             )}
 
-            {/* 시간 슬롯 아이콘 표시 */}
-            {renderSlotIcons(item.slots, isCompleted)}
+            {renderSlotIcons(item.slots, item.id)}
 
-            {isCompleted && (
+            {item.isActive && allDone && item.slots.length > 0 && (
               <Text
                 variant="labelSmall"
-                style={{ color: theme.colors.primary, marginTop: 4 }}
+                style={{ color: "green", marginTop: 2 }}
               >
                 오늘 복용 완료
               </Text>
@@ -134,7 +167,6 @@ function PillListScreen() {
           <View style={styles.settingContainer}>
             <Switch
               value={item.isActive}
-              disabled={isCompleted}
               onValueChange={() => togglePillActive(item.id)}
             />
           </View>
@@ -145,11 +177,15 @@ function PillListScreen() {
 
   return (
     <View style={styles.container}>
-      {/* 상단 배너 추가 - 배너 수정이 필요할 수 있습니다 (배너도 RegisteredPill 변경된 구조에 맞춰야 함) */}
-      {/* <TopTimeBanner nextPill={nextPill} onComplete={handleCompletePill} /> */}
-      {/* 우선 컴파일 오류 방지를 위해 배너 주석 처리하거나, TopTimeBanner를 업데이트해야 함. */}
-      {/* nextPill이 null일 수 있으므로 조건부 렌더링을 고려해야 하지만, TopTimeBanner 내부에서 처리함. */}
-      {/* TopTimeBanner가 아직 RegisteredPill의 time: Date를 쓰고 있다면 오류가 날 것임. */}
+      <TopTimeBanner
+        nextPill={nextTarget?.pill}
+        targetSlot={nextTarget?.slot}
+        onComplete={(id) => {
+          if (nextTarget && nextTarget.pill.id === id) {
+            handleCompleteTask(id, nextTarget.slot);
+          }
+        }}
+      />
 
       <AddPillModal
         visible={visible}
