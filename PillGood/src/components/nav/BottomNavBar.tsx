@@ -1,35 +1,44 @@
 import * as React from "react";
 import { BottomNavigation, Text } from "react-native-paper";
 import PillScreen from "../../screens/PillScreen";
+import HistoryScreen from "../../screens/HistoryScreen";
+import SettingsScreen from "../../screens/SettingsScreen";
+import SearchPillScreen from "../../screens/SearchPillScreen";
 
 function BottomNavBar() {
   const [index, setIndex] = React.useState(0);
   const [routes] = React.useState([
     {
-      key: "pill",
-      title: "약",
-      focusedIcon: "pill",
+      key: "home",
+      title: "홈",
+      focusedIcon: "home",
+      unfocusedIcon: "home-outline",
     },
-    { key: "albums", title: "최근기록", focusedIcon: "album" },
-    { key: "recents", title: "검색", focusedIcon: "history" },
     {
-      key: "notifications",
+      key: "search",
+      title: "약 검색",
+      focusedIcon: "pill", // 돋보기 대신 약 모양 아이콘 사용 (약 정보 검색이므로)
+      unfocusedIcon: "pill",
+    },
+    {
+      key: "history",
+      title: "기록",
+      focusedIcon: "calendar-check",
+      unfocusedIcon: "calendar-check-outline",
+    },
+    {
+      key: "settings",
       title: "설정",
-      focusedIcon: "bell",
-      unfocusedIcon: "bell-outline",
+      focusedIcon: "cog",
+      unfocusedIcon: "cog-outline",
     },
   ]);
 
-  const PillRoute = () => <PillScreen />;
-  const AlbumsRoute = () => <Text>Albums</Text>;
-  const RecentsRoute = () => <Text>Recents</Text>;
-  const NotificationsRoute = () => <Text>Notifications</Text>;
-
   const renderScene = BottomNavigation.SceneMap({
-    pill: PillRoute,
-    albums: AlbumsRoute,
-    recents: RecentsRoute,
-    notifications: NotificationsRoute,
+    home: PillScreen,
+    search: SearchPillScreen,
+    history: HistoryScreen,
+    settings: SettingsScreen,
   });
 
   return (

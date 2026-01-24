@@ -101,17 +101,36 @@ function PillListScreen() {
           if (!isAssigned) return null;
 
           return (
-            <IconButton
-              key={slot}
-              icon={icons[slot]}
-              size={20}
-              iconColor={
-                isDone
-                  ? theme.colors.outline // 완료됨
-                  : theme.colors.primary // 해야함
-              }
-              style={{ margin: 0, opacity: isDone ? 0.3 : 1 }}
-            />
+            <View key={slot}>
+              <IconButton
+                icon={icons[slot]}
+                size={20}
+                iconColor={
+                  isDone ? theme.colors.surfaceVariant : theme.colors.primary
+                }
+                style={{ margin: 0 }}
+              />
+              {isDone && (
+                <View
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    justifyContent: "center",
+                    alignItems: "center",
+                  }}
+                >
+                  <IconButton
+                    icon="check-bold"
+                    size={28}
+                    iconColor="green"
+                    style={{ margin: 0 }}
+                  />
+                </View>
+              )}
+            </View>
           );
         })}
       </View>

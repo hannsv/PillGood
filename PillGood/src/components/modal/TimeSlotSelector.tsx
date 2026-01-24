@@ -61,16 +61,17 @@ export default function TimeSlotSelector({
                     ? theme.colors.primary
                     : theme.colors.onSurfaceVariant
                 }
-                size={24}
+                size={32}
                 style={{ margin: 0 }}
               />
               <Text
-                variant="labelMedium"
+                variant="labelLarge"
                 style={{
                   color: isSelected
                     ? theme.colors.primary
                     : theme.colors.onSurfaceVariant,
                   fontWeight: isSelected ? "bold" : "normal",
+                  marginTop: 4,
                 }}
               >
                 {config.label}
@@ -91,18 +92,20 @@ const styles = StyleSheet.create({
   },
   row: {
     flexDirection: "row",
+    flexWrap: "wrap",
     justifyContent: "space-between",
     width: "100%",
-    paddingHorizontal: 10,
+    paddingHorizontal: 0,
   },
   slotButton: {
     alignItems: "center",
     justifyContent: "center",
-    padding: 10,
-    borderRadius: 12,
+    paddingVertical: 20,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: "#e0e0e0",
-    width: "23%", // 4 items in a row
+    width: "48%",
+    marginBottom: 12,
     backgroundColor: "white",
   },
 });

@@ -26,13 +26,29 @@ export interface Pill {
   memo?: string; // 사용자 메모
 }
 
+// 3-1. (신규) 약 검색/저장용 정보 (SavedDrugInfo)
+// 사용자가 검색해서 저장해둔 약의 상세 정보입니다. (복용 스케줄과 무관)
+// 효능, 주의사항 등 상세 데이터를 저장합니다.
+export interface SavedDrugInfo {
+  id: string;
+  name: string;
+  company?: string;
+  efficacy?: string; // 효능효과
+  usage?: string; // 용법용량
+  precautions?: string; // 주의사항
+  saved_at: string; // 저장한 날짜
+}
+
 // 4. 복용 일정 (Schedules) - 중요!
 // 어떤 약 그룹을 언제 먹어야 하는지 정의합니다.
 // 알림의 기준이 되는 테이블입니다.
 export interface Schedule {
   id: string;
   group_id: string;
-  time: string; // 설정 시간 (HH:MM format, 예: "09:00", "18:30")
+  // 변경: 구체적인 시간(HH:MM) 대신 슬롯(Slot) 중심 관리 권장
+  // 사용자가 "아침"을 8시로 설정했으면, 이 슬롯을 가진 모든 그룹이 8시에 알림
+  slot: "morning" | "lunch" | "dinner" | "bedtime";
+  time?: string; // (선택) 해당 슬롯의 기본 시간이 아니라 커스텀 시간을 원할 경우 사용
   days: string[]; // 요일 ["Mon", "Tue", ...] (빈 배열이면 매일)
   is_active: boolean; // 알림 켜짐/꺼짐 상태
 }
@@ -83,14 +99,14 @@ export const DUMMY_SCHEDULES: Schedule[] = [
   {
     id: "sch-1",
     group_id: "group-1",
-    time: "09:00",
+    slot: "morning",
     days: [],
     is_active: true,
   },
   {
     id: "sch-2",
     group_id: "group-1",
-    time: "18:00",
+    slot: "dinner",
     days: [],
     is_active: true,
   },
@@ -99,6 +115,19 @@ export const DUMMY_SCHEDULES: Schedule[] = [
   {
     id: "sch-3",
     group_id: "group-2",
+    slot: "lunch",
+    days: [],
+    is_active: true,
+  },
+   // 추가 예시: 영양제를 아침에도 먹는다면? (감기약과 아침 슬롯 겹침 -> OK)
+   {
+    id: "sch-4",
+    group_id: "group-2",
+    slot: "morning",
+    days: [],
+    is_active: true,
+  },
+];    group_id: "group-2",
     time: "13:00",
     days: [],
     is_active: true,
