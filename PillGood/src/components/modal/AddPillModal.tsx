@@ -9,7 +9,7 @@ import {
 import { StyleSheet, View } from "react-native";
 import { useState } from "react";
 import PillResultList, { PillResultListProps } from "./PillResultList";
-import TimePickerSection from "./TimePickerSection";
+import TimeSlotSelector, { TimeSlot } from "./TimeSlotSelector";
 
 // 단계
 type Step = "search" | "results" | "detail" | "setting";
@@ -23,7 +23,7 @@ export interface PillResult {
 }
 
 export interface RegisteredPill extends PillResult {
-  time: Date;
+  slots: TimeSlot[]; // 변경: 단일 시간 -> 슬롯 배열
   isActive: boolean;
 }
 
@@ -40,7 +40,7 @@ function AddPillModal({
   const [pillName, setPillName] = useState("");
   const [searchResults, setSearchResults] = useState<PillResult[]>([]);
   const [selectedPill, setSelectedPill] = useState<PillResult | null>(null);
-  const [alarmTime, setAlarmTime] = useState(new Date());
+  const [selectedSlots, setSelectedSlots] = useState<TimeSlot[]>([]);
 
   // 모달이 닫힐 때 상태 초기화
   const handleDismiss = () => {
@@ -49,14 +49,14 @@ function AddPillModal({
     setPillName("");
     setSearchResults([]);
     setSelectedPill(null);
-    setAlarmTime(new Date());
+    setSelectedSlots([]);
   };
 
   const handleComplete = () => {
-    if (selectedPill) {
+    if (selectedPill && selectedSlots.length > 0) {
       onAddPill({
         ...selectedPill,
-        time: alarmTime,
+        slots: selectedSlots,
         isActive: true,
       });
       handleDismiss();
@@ -138,6 +138,7 @@ function AddPillModal({
                 onChangeText={setPillName}
                 placeholder="찾으시는 약 이름을 입력하세요"
                 style={{ width: "80%", marginBottom: 20 }}
+                onSubmitEditing={handleSearch} // Enter 키 입력 시 검색 실행
               />
               <Button
                 mode="contained"
@@ -166,12 +167,16 @@ function AddPillModal({
                 {selectedPill?.name}
               </Text>
 
-              <TimePickerSection date={alarmTime} onChange={setAlarmTime} />
+              <TimeSlotSelector
+                selectedSlots={selectedSlots}
+                onChange={setSelectedSlots}
+              />
 
               <Button
                 mode="contained"
                 onPress={handleComplete}
                 style={{ marginTop: 20, width: "100%" }}
+                disabled={selectedSlots.length === 0}
               >
                 등록 완료
               </Button>
