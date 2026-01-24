@@ -80,14 +80,19 @@ export default function TopTimeBanner({
 }
 
 const getNextPillTimeText = (slot: TimeSlot) => {
-    switch (slot) {
-      case "morning": return "아침 - 오전 8:00";
-      case "lunch": return "점심 - 오후 12:00";
-      case "dinner": return "저녁 - 오후 6:00";
-      case "bedtime": return "자기전 - 오후 10:00";
-      default: return "";
-    }
-}
+  switch (slot) {
+    case "morning":
+      return "아침 - 오전 8:00";
+    case "lunch":
+      return "점심 - 오후 12:00";
+    case "dinner":
+      return "저녁 - 오후 6:00";
+    case "bedtime":
+      return "자기전 - 오후 10:00";
+    default:
+      return "";
+  }
+};
 
 const styles = StyleSheet.create({
   card: {
