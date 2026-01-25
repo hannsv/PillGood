@@ -350,7 +350,7 @@ function PillListScreen() {
               variant="titleSmall"
               style={{
                 color: theme.colors.primary,
-                marginTop: 0, 
+                marginTop: 0,
                 fontWeight: "bold",
               }}
             >
@@ -497,7 +497,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
   },
   fab: {
-    position: 'absolute',
+    position: "absolute",
     margin: 20,
     right: 0,
     bottom: 10,
