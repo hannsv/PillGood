@@ -10,6 +10,7 @@ import { StyleSheet, View } from "react-native";
 import { useState } from "react";
 import PillResultList, { PillResultListProps } from "./PillResultList";
 import TimeSlotSelector, { TimeSlot } from "./TimeSlotSelector";
+import DaySelector, { DayOfWeek } from "./DaySelector";
 
 // 단계
 type Step = "search" | "results" | "detail" | "setting";
@@ -24,6 +25,7 @@ export interface PillResult {
 
 export interface RegisteredPill extends PillResult {
   slots: TimeSlot[]; // 변경: 단일 시간 -> 슬롯 배열
+  days: DayOfWeek[]; // 요일 배열 (빈 배열 = 매일)
   isActive: boolean;
 }
 
@@ -41,6 +43,7 @@ function AddPillModal({
   const [searchResults, setSearchResults] = useState<PillResult[]>([]);
   const [selectedPill, setSelectedPill] = useState<PillResult | null>(null);
   const [selectedSlots, setSelectedSlots] = useState<TimeSlot[]>([]);
+  const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>([]);
 
   // 모달이 닫힐 때 상태 초기화
   const handleDismiss = () => {
@@ -50,6 +53,7 @@ function AddPillModal({
     setSearchResults([]);
     setSelectedPill(null);
     setSelectedSlots([]);
+    setSelectedDays([]);
   };
 
   const handleComplete = () => {
@@ -57,6 +61,7 @@ function AddPillModal({
       onAddPill({
         ...selectedPill,
         slots: selectedSlots,
+        days: selectedDays,
         isActive: true,
       });
       handleDismiss();
@@ -170,6 +175,11 @@ function AddPillModal({
               <TimeSlotSelector
                 selectedSlots={selectedSlots}
                 onChange={setSelectedSlots}
+              />
+
+              <DaySelector
+                selectedDays={selectedDays}
+                onChange={setSelectedDays}
               />
 
               <Button

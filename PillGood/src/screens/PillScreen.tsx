@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { View, StyleSheet, FlatList } from "react-native";
+import { useState, useEffect, useCallback } from "react";
+import { View, StyleSheet, FlatList, Alert } from "react-native";
 import {
   Button,
   Card,
@@ -9,31 +9,76 @@ import {
   IconButton,
   Avatar,
 } from "react-native-paper";
+// import { useFocusEffect } from "@react-navigation/native"; // 내비게이션 라이브러리 미사용으로 제거
 
 import AddPillModal, { RegisteredPill } from "../components/modal/AddPillModal";
 import TopTimeBanner from "../components/banner/TopTimeBannner";
 import { TimeSlot } from "../components/modal/TimeSlotSelector";
+import { DayOfWeek } from "../components/modal/DaySelector";
+import {
+  addPillToDB,
+  getPillsFromDB,
+  deletePillFromDB,
+  togglePillActiveDB,
+} from "../api/database";
 
 function PillListScreen() {
   const [visible, setVisible] = useState(false);
-  const [screenState, setScreenState] = useState<"add" | "details">("add");
   const theme = useTheme();
 
   const [pillList, setPillList] = useState<RegisteredPill[]>([]);
   // 완료된 작업 목록: "pillId_slot" 형식의 문자열 배열
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
 
-  const handleAddPill = (newPill: RegisteredPill) => {
-    setPillList((prev) => [...prev, newPill]);
+  // DB에서 데이터 로드
+  const loadPills = async () => {
+    const pills = await getPillsFromDB();
+    setPillList(pills);
+  };
+
+  // 초기 로딩
+  useEffect(() => {
+    loadPills();
+  }, []);
+
+  // 화면 포커스 될 때마다 데이터 새로고침 (Nav 없이 Paper Nav 사용중이므로 useEffect로 대체)
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     loadPills();
+  //   }, [])
+  // );
+
+  const handleAddPill = async (newPill: RegisteredPill) => {
+    // DB 저장
+    await addPillToDB(newPill);
+    // 목록 갱신
+    await loadPills();
     setVisible(false);
   };
 
-  const togglePillActive = (id: string) => {
+  const togglePillActive = async (id: string, currentStatus: boolean) => {
+    // UI 낙관적 업데이트
     setPillList((prev) =>
       prev.map((pill) =>
         pill.id === id ? { ...pill, isActive: !pill.isActive } : pill,
       ),
     );
+    // DB 업데이트
+    await togglePillActiveDB(id, !currentStatus);
+  };
+
+  const handleDeletePill = (id: string) => {
+    Alert.alert("약 삭제", "정말로 이 약을 목록에서 삭제하시겠습니까?", [
+      { text: "취소", style: "cancel" },
+      {
+        text: "삭제",
+        style: "destructive",
+        onPress: async () => {
+          await deletePillFromDB(id);
+          await loadPills();
+        },
+      },
+    ]);
   };
 
   const handleCompleteTask = (pillId: string, slot: TimeSlot) => {
@@ -48,6 +93,18 @@ function PillListScreen() {
   const getNextPill = (): { pill: RegisteredPill; slot: TimeSlot } | null => {
     const slotOrder: TimeSlot[] = ["morning", "lunch", "dinner", "bedtime"];
 
+    // 현재 요일 구하기 (0: Sun, 1: Mon, ...)
+    const dayMap: { [key: number]: string } = {
+      0: "Sun",
+      1: "Mon",
+      2: "Tue",
+      3: "Wed",
+      4: "Thu",
+      5: "Fri",
+      6: "Sat",
+    };
+    const todayKey = dayMap[new Date().getDay()];
+
     // { pill, slot, orderIndex } 목록 생성
     const allPending: {
       pill: RegisteredPill;
@@ -58,6 +115,16 @@ function PillListScreen() {
     pillList
       .filter((p) => p.isActive)
       .forEach((pill) => {
+        // 요일 체크: days가 있고 비어있지 않은 경우, 오늘 요일이 포함되어야 함
+        // days가 undefined거나 빈 배열이면 매일 복용으로 간주
+        if (
+          pill.days &&
+          pill.days.length > 0 &&
+          !pill.days.includes(todayKey as any)
+        ) {
+          return;
+        }
+
         pill.slots.forEach((slot) => {
           const key = `${pill.id}_${slot}`;
           if (!completedTasks.includes(key)) {
@@ -137,6 +204,26 @@ function PillListScreen() {
     );
   };
 
+  const getDaysLabel = (days?: DayOfWeek[]) => {
+    if (!days || days.length === 0) return "매일";
+
+    const dayLabels: { [key: string]: string } = {
+      Mon: "월",
+      Tue: "화",
+      Wed: "수",
+      Thu: "목",
+      Fri: "금",
+      Sat: "토",
+      Sun: "일",
+    };
+    const order = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+    const sorted = [...days].sort(
+      (a, b) => order.indexOf(a as string) - order.indexOf(b as string),
+    );
+
+    return sorted.map((d) => dayLabels[d as string] || d).join(", ");
+  };
+
   const renderPillItem = ({ item }: { item: RegisteredPill }) => {
     const allDone = item.slots.every((s) =>
       completedTasks.includes(`${item.id}_${s}`),
@@ -171,6 +258,13 @@ function PillListScreen() {
               </Text>
             )}
 
+            <Text
+              variant="bodySmall"
+              style={{ color: theme.colors.primary, marginTop: 4 }}
+            >
+              {getDaysLabel(item.days)}
+            </Text>
+
             {renderSlotIcons(item.slots, item.id)}
 
             {item.isActive && allDone && item.slots.length > 0 && (
@@ -186,7 +280,13 @@ function PillListScreen() {
           <View style={styles.settingContainer}>
             <Switch
               value={item.isActive}
-              onValueChange={() => togglePillActive(item.id)}
+              onValueChange={() => togglePillActive(item.id, item.isActive)}
+            />
+            <IconButton
+              icon="trash-can-outline"
+              size={20}
+              iconColor={theme.colors.error}
+              onPress={() => handleDeletePill(item.id)}
             />
           </View>
         </Card.Content>

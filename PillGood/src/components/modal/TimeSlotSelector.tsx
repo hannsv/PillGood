@@ -1,4 +1,3 @@
-import React from "react";
 import { View, StyleSheet, TouchableOpacity } from "react-native";
 import { Text, IconButton, useTheme } from "react-native-paper";
 
@@ -16,6 +15,10 @@ const SLOT_CONFIG: {
   lunch: { label: "점심", icon: "silverware-fork-knife", time: 13 }, // 13:00
   dinner: { label: "저녁", icon: "weather-sunset", time: 18 }, // 18:00
   bedtime: { label: "자기전", icon: "bed", time: 22 }, // 22:00
+};
+
+const formatTime = (hour: number) => {
+  return `${hour.toString().padStart(2, "0")}:00`;
 };
 
 export default function TimeSlotSelector({
@@ -75,6 +78,18 @@ export default function TimeSlotSelector({
                 }}
               >
                 {config.label}
+              </Text>
+              <Text
+                variant="labelSmall"
+                style={{
+                  color: isSelected
+                    ? theme.colors.primary
+                    : theme.colors.outline,
+                  marginTop: 2,
+                  opacity: 0.8,
+                }}
+              >
+                {formatTime(config.time)}
               </Text>
             </TouchableOpacity>
           );

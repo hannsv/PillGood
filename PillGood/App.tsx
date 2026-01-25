@@ -9,9 +9,30 @@ import { PaperProvider } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "./theme";
 import TopWidget from "./src/components/widget/TopWidget";
+import { initDatabase } from "./src/api/database";
+import { useEffect, useState } from "react";
+import { ActivityIndicator } from "react-native-paper";
 
 export default function App() {
+  const [isDBReady, setIsDBReady] = useState(false);
   console.log("API Key:", API_KEY);
+
+  useEffect(() => {
+    const init = async () => {
+      await initDatabase();
+      setIsDBReady(true);
+    };
+    init();
+  }, []);
+
+  if (!isDBReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
   return (
     <SafeAreaProvider>
       <PaperProvider

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { View, StyleSheet, FlatList } from "react-native";
 import { Searchbar, Text, Card, Button, IconButton } from "react-native-paper";
 

@@ -1,4 +1,4 @@
-import * as React from "react";
+import { useState } from "react";
 import { BottomNavigation, Text } from "react-native-paper";
 import PillScreen from "../../screens/PillScreen";
 import HistoryScreen from "../../screens/HistoryScreen";
@@ -6,8 +6,8 @@ import SettingsScreen from "../../screens/SettingsScreen";
 import SearchPillScreen from "../../screens/SearchPillScreen";
 
 function BottomNavBar() {
-  const [index, setIndex] = React.useState(0);
-  const [routes] = React.useState([
+  const [index, setIndex] = useState(0);
+  const [routes] = useState([
     {
       key: "home",
       title: "홈",
