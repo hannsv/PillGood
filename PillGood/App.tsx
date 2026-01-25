@@ -1,6 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import { StyleSheet, Text, View } from "react-native";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 
 import BottomNavBar from "./src/components/nav/BottomNavBar";
 import { API_KEY } from "@env";
@@ -41,10 +41,11 @@ export default function App() {
           icon: (props) => <MaterialCommunityIcons {...props} />,
         }}
       >
-        <View style={styles.container}>
+        <SafeAreaView style={styles.container} edges={["top", "left", "right"]}>
           <TopWidget />
+          <StatusBar style="auto" />
           <BottomNavBar />
-        </View>
+        </SafeAreaView>
       </PaperProvider>
     </SafeAreaProvider>
   );

@@ -1,0 +1,13 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "verify_db_content",
+			"type": "shell",
+			"command": "echo \"Verifying database.ts content for insertion\"",
+			"args": [],
+			"problemMatcher": [],
+			"group": "test"
+		}
+	]
+}

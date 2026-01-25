@@ -163,6 +163,187 @@ export const togglePillActiveDB = async (
 };
 
 /**
+ * 복용 기록 추가
+ */
+export const addPillHistory = async (groupId: string, slot: string) => {
+  const db = await dbPromise;
+  try {
+    // 1. 해당 약의 해당 슬롯 스케줄 ID 찾기
+    const schedule = await db.getFirstAsync<{ id: string }>(
+      "SELECT id FROM Schedules WHERE group_id = ? AND slot = ?",
+      [groupId, slot],
+    );
+
+    if (!schedule) {
+      console.warn(`No schedule found for group ${groupId} slot ${slot}`);
+      return;
+    }
+
+    // 2. 기록 추가
+    const historyId = generateUUID();
+    const now = new Date().toISOString();
+
+    await db.runAsync(
+      "INSERT INTO History (id, schedule_id, taken_at, is_skipped) VALUES (?, ?, ?, ?)",
+      [historyId, schedule.id, now, 0],
+    );
+    console.log("History added for", groupId, slot);
+  } catch (error) {
+    console.error("Error adding history:", error);
+  }
+};
+
+/**
+ * 오늘 복용 완료한 목록 가져오기
+ * 반환값: ["groupId_slot", ...] 형태의 문자열 배열
+ */
+export const getTodayCompletedTasks = async (): Promise<string[]> => {
+  const db = await dbPromise;
+  try {
+    const midnight = new Date();
+    midnight.setHours(0, 0, 0, 0);
+    const midnightISO = midnight.toISOString();
+
+    // 오늘(자정 이후) 기록된 모든 복용 이력 조회
+    const rows = await db.getAllAsync<{ group_id: string; slot: string }>(
+      `
+             SELECT s.group_id, s.slot
+             FROM History h
+             JOIN Schedules s ON h.schedule_id = s.id
+             WHERE h.taken_at >= ?
+        `,
+      [midnightISO],
+    );
+
+    return rows.map((r) => `${r.group_id}_${r.slot}`);
+  } catch (error) {
+    console.error("Error fetching today history:", error);
+    return [];
+  }
+};
+
+export interface HistoryItem {
+  id: string;
+  takenAt: string;
+  pillName: string;
+  slot: string;
+}
+
+/**
+ * 전체 복용 기록 가져오기
+ */
+export const getAllHistory = async (): Promise<HistoryItem[]> => {
+  const db = await dbPromise;
+  try {
+    const rows = await db.getAllAsync<{
+      id: string;
+      taken_at: string;
+      title: string;
+      slot: string;
+    }>(`
+            SELECT h.id, h.taken_at, g.title, s.slot
+            FROM History h
+            JOIN Schedules s ON h.schedule_id = s.id
+            JOIN PillGroups g ON s.group_id = g.id
+            ORDER BY h.taken_at DESC
+        `);
+
+    return rows.map((row) => ({
+      id: row.id,
+      takenAt: row.taken_at,
+      pillName: row.title,
+      slot: row.slot,
+    }));
+  } catch (error) {
+    console.error("Error fetching all history:", error);
+    return [];
+  }
+};
+
+// --- 검색 기록 관련 API ---
+
+export interface SearchHistoryItem {
+  id: number;
+  name: string;
+  company?: string;
+  efficacy?: string;
+  usage?: string;
+  precautions?: string;
+  searchedAt: string;
+}
+
+export const addSearchHistory = async (pill: {
+  name: string;
+  company?: string;
+  efficacy?: string;
+  usage?: string;
+  precautions?: string;
+}) => {
+  const db = await dbPromise;
+  const now = new Date().toISOString();
+  // 중복 제거 (같은 이름이면 기존꺼 삭제하고 최신으로 업데이트)
+  await db.runAsync("DELETE FROM SearchHistory WHERE name = ?", [pill.name]);
+
+  await db.runAsync(
+    "INSERT INTO SearchHistory (name, company, efficacy, usage, precautions, searched_at) VALUES (?, ?, ?, ?, ?, ?)",
+    [
+      pill.name,
+      pill.company || "",
+      pill.efficacy || "",
+      pill.usage || "",
+      pill.precautions || "",
+      now,
+    ],
+  );
+};
+
+export const getSearchHistory = async (): Promise<SearchHistoryItem[]> => {
+  const db = await dbPromise;
+  const result = await db.getAllAsync<any>(
+    "SELECT * FROM SearchHistory ORDER BY searched_at DESC LIMIT 20",
+  );
+  return result.map((item: any) => ({
+    id: item.id,
+    name: item.name,
+    company: item.company,
+    efficacy: item.efficacy,
+    usage: item.usage,
+    precautions: item.precautions,
+    searchedAt: item.searched_at,
+  }));
+};
+
+export const clearSearchHistory = async () => {
+  const db = await dbPromise;
+  await db.runAsync("DELETE FROM SearchHistory");
+};
+export const getFrequentPills = async (): Promise<
+  { id: string; name: string; company?: string }[]
+> => {
+  const db = await dbPromise;
+  try {
+    const result = await db.getAllAsync<{
+      name: string;
+      company: string;
+      count: number;
+    }>(
+      `SELECT name, company, COUNT(*) as count 
+         FROM Pills 
+         GROUP BY name 
+         ORDER BY count DESC 
+         LIMIT 5`,
+    );
+    return result.map((r, i) => ({
+      id: `freq-${i}`,
+      name: r.name,
+      company: r.company,
+    }));
+  } catch (e) {
+    console.error("Failed to get frequent pills", e);
+    return [];
+  }
+};
+/**
  * 데이터베이스 초기화: 테이블 생성
  */
 export const initDatabase = async () => {
@@ -215,6 +396,19 @@ export const initDatabase = async () => {
         usage TEXT,
         precautions TEXT,
         saved_at TEXT NOT NULL
+      );
+    `);
+
+    // 4-1. 검색 기록 테이블 (최근 본 약)
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS SearchHistory (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        company TEXT,
+        efficacy TEXT,
+        usage TEXT,
+        precautions TEXT,
+        searched_at TEXT NOT NULL
       );
     `);
 

@@ -5,12 +5,15 @@ import {
   Searchbar,
   Text,
   IconButton,
+  useTheme,
+  Chip,
 } from "react-native-paper";
-import { StyleSheet, View } from "react-native";
-import { useState } from "react";
+import { StyleSheet, View, ScrollView } from "react-native";
+import { useState, useEffect } from "react";
 import PillResultList, { PillResultListProps } from "./PillResultList";
 import TimeSlotSelector, { TimeSlot } from "./TimeSlotSelector";
 import DaySelector, { DayOfWeek } from "./DaySelector";
+import { getFrequentPills } from "../../api/database";
 
 // 단계
 type Step = "search" | "results" | "detail" | "setting";
@@ -38,12 +41,20 @@ function AddPillModal({
   onDismiss: () => void;
   onAddPill: (pill: RegisteredPill) => void;
 }) {
+  const theme = useTheme();
   const [step, setStep] = useState<Step>("search");
   const [pillName, setPillName] = useState("");
   const [searchResults, setSearchResults] = useState<PillResult[]>([]);
   const [selectedPill, setSelectedPill] = useState<PillResult | null>(null);
   const [selectedSlots, setSelectedSlots] = useState<TimeSlot[]>([]);
   const [selectedDays, setSelectedDays] = useState<DayOfWeek[]>([]);
+  const [frequentPills, setFrequentPills] = useState<PillResult[]>([]);
+
+  useEffect(() => {
+    if (visible && step === "search") {
+      getFrequentPills().then(setFrequentPills);
+    }
+  }, [visible, step]);
 
   // 모달이 닫힐 때 상태 초기화
   const handleDismiss = () => {
@@ -138,6 +149,34 @@ function AddPillModal({
           {/* Step 1: 검색 */}
           {step === "search" && (
             <View style={styles.centerContainer}>
+              {frequentPills.length > 0 && (
+                <View style={{ width: "80%", marginBottom: 20 }}>
+                  <Text
+                    variant="labelMedium"
+                    style={{ color: "gray", marginBottom: 8, marginLeft: 4 }}
+                  >
+                    자주 찾는 약 빠른 추가
+                  </Text>
+                  <View style={{ flexDirection: "row", flexWrap: "wrap" }}>
+                    {frequentPills.map((pill) => (
+                      <Chip
+                        key={pill.id}
+                        style={{
+                          marginRight: 8,
+                          marginBottom: 8,
+                          backgroundColor: theme.colors.tertiaryContainer,
+                        }}
+                        textStyle={{ color: theme.colors.onTertiaryContainer }}
+                        onPress={() => handleSelectPill(pill)}
+                        icon="plus"
+                      >
+                        {pill.name}
+                      </Chip>
+                    ))}
+                  </View>
+                </View>
+              )}
+
               <Searchbar
                 value={pillName}
                 onChangeText={setPillName}
@@ -186,6 +225,8 @@ function AddPillModal({
                 mode="contained"
                 onPress={handleComplete}
                 style={{ marginTop: 20, width: "100%" }}
+                buttonColor={theme.colors.tertiary}
+                textColor={theme.colors.onTertiary}
                 disabled={selectedSlots.length === 0}
               >
                 등록 완료
