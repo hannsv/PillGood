@@ -71,7 +71,11 @@ export default function HistoryScreen() {
 
   const formatTime = (isoString: string) => {
     const date = new Date(isoString);
-    return `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
+    const hour = date.getHours();
+    const minute = date.getMinutes();
+    const ampm = hour >= 12 ? "오후" : "오전";
+    const formattedHour = hour % 12 || 12; // 0시는 12시로 표시
+    return `${ampm} ${formattedHour}:${minute.toString().padStart(2, "0")}`;
   };
 
   const renderItem = ({ item }: { item: HistoryItem }) => (

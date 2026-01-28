@@ -15,6 +15,8 @@ import {
   IconButton,
   Avatar,
   FAB,
+  Icon,
+  Divider,
 } from "react-native-paper";
 // import { useFocusEffect } from "@react-navigation/native"; // 내비게이션 라이브러리 미사용으로 제거
 
@@ -62,9 +64,9 @@ function PillListScreen() {
   //   }, [])
   // );
 
-  const handleAddPill = async (newPill: RegisteredPill) => {
+  const handleAddPill = async (newPills: RegisteredPill[]) => {
     // DB 저장
-    await addPillToDB(newPill);
+    await addPillToDB(newPills);
     // 목록 갱신
     await loadPills();
     setVisible(false);
@@ -189,70 +191,112 @@ function PillListScreen() {
   const nextTarget = getNextPill();
 
   const renderSlotIcons = (slots: TimeSlot[], pillId: string) => {
-    const allSlots: TimeSlot[] = ["morning", "lunch", "dinner", "bedtime"];
-
-    // 아이콘 매핑
-    const icons: { [key in TimeSlot]: string } = {
-      morning: "weather-sunny", // 아침
-      lunch: "silverware-fork-knife", // 점심
-      dinner: "weather-sunset", // 저녁
-      bedtime: "bed", // 자기전
+    const slotLabels: { [key in TimeSlot]: string } = {
+      morning: "아침",
+      lunch: "점심",
+      dinner: "저녁",
+      bedtime: "자기전",
     };
+    const slotOrder: TimeSlot[] = ["morning", "lunch", "dinner", "bedtime"];
+
+    // 슬롯 정렬
+    const sortedSlots = [...slots].sort(
+      (a, b) => slotOrder.indexOf(a) - slotOrder.indexOf(b),
+    );
 
     return (
-      // 2x2 그리드 형태: 너비를 제한(약 56px)하고 flexWrap 사용
       <View
         style={{
+          marginTop: 8,
           flexDirection: "row",
           flexWrap: "wrap",
-          width: 56,
-          marginLeft: 10,
+          justifyContent: "space-between",
         }}
       >
-        {allSlots.map((slot) => {
-          const isAssigned = slots.includes(slot);
+        {sortedSlots.map((slot) => {
           const isDone = completedTasks.includes(`${pillId}_${slot}`);
-
-          if (!isAssigned)
-            return <View key={slot} style={{ width: 28, height: 28 }} />;
-
           return (
             <View
               key={slot}
               style={{
-                width: 28,
-                height: 28,
-                justifyContent: "center",
+                width: sortedSlots.length === 1 ? "100%" : "48%", // 1개일 땐 꽉 차게, 아니면 2열
+                backgroundColor: isDone ? "#f0f0f0" : "white",
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: isDone
+                  ? "transparent"
+                  : theme.colors.outlineVariant,
+                padding: 12,
                 alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 8,
               }}
             >
-              <IconButton
-                icon={icons[slot]}
-                size={18}
-                iconColor={
-                  isDone ? theme.colors.surfaceVariant : theme.colors.primary
-                }
-                style={{ margin: 0 }}
-              />
-              {isDone && (
+              <View
+                style={{
+                  marginBottom: 12,
+                  width: "100%",
+                  alignItems: "center",
+                }}
+              >
+                <Text
+                  variant="titleMedium"
+                  style={{
+                    color: isDone ? theme.colors.outline : theme.colors.primary,
+                    fontWeight: "bold",
+                  }}
+                >
+                  {slotLabels[slot]}
+                </Text>
+              </View>
+
+              {isDone ? (
                 <View
                   style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
+                    flexDirection: "row",
+                    alignItems: "center",
                     justifyContent: "center",
+                    paddingVertical: 8,
+                    width: "100%",
+                  }}
+                >
+                  <Icon
+                    source="check-bold"
+                    color={theme.colors.secondary}
+                    size={20}
+                  />
+                  <Text
+                    variant="labelMedium"
+                    style={{
+                      marginLeft: 4,
+                      color: theme.colors.secondary,
+                      fontWeight: "bold",
+                    }}
+                  >
+                    완료
+                  </Text>
+                </View>
+              ) : (
+                <TouchableOpacity
+                  onPress={() => handleCompleteTask(pillId, slot)}
+                  style={{
+                    backgroundColor: theme.colors.primary,
+                    borderRadius: 20,
+                    paddingVertical: 8,
+                    width: "100%",
                     alignItems: "center",
                   }}
                 >
-                  <IconButton
-                    icon="check-bold"
-                    size={24}
-                    iconColor={theme.colors.secondary} // Green
-                    style={{ margin: 0 }}
-                  />
-                </View>
+                  <Text
+                    variant="labelMedium"
+                    style={{
+                      color: theme.colors.onPrimary,
+                      fontWeight: "bold",
+                    }}
+                  >
+                    복용
+                  </Text>
+                </TouchableOpacity>
               )}
             </View>
           );
@@ -286,22 +330,6 @@ function PillListScreen() {
       completedTasks.includes(`${item.id}_${s}`),
     );
 
-    // 다음 복용해야 할 슬롯 찾기
-    const slotOrder: TimeSlot[] = ["morning", "lunch", "dinner", "bedtime"];
-    const slotLabels: { [key in TimeSlot]: string } = {
-      morning: "아침",
-      lunch: "점심",
-      dinner: "저녁",
-      bedtime: "자기전",
-    };
-
-    const sortedSlots = [...item.slots].sort(
-      (a, b) => slotOrder.indexOf(a) - slotOrder.indexOf(b),
-    );
-    const nextPendingSlot = sortedSlots.find(
-      (slot) => !completedTasks.includes(`${item.id}_${slot}`),
-    );
-
     return (
       <Card
         style={[
@@ -311,16 +339,16 @@ function PillListScreen() {
         ]}
       >
         <Card.Content style={styles.cardContent}>
-          <View style={styles.infoContainer}>
-            {/* 상단: 약 이름 + 복용 시간(2x2) */}
+          <View style={{ flexDirection: "column" }}>
             <View
               style={{
                 flexDirection: "row",
+                justifyContent: "space-between",
                 alignItems: "flex-start",
-                marginBottom: 12, // 간격 확대
+                marginBottom: 8,
               }}
             >
-              <View style={{ flex: 1 }}>
+              <View style={{ flex: 1, marginRight: 8 }}>
                 <Text
                   variant="headlineSmall"
                   style={[
@@ -334,106 +362,72 @@ function PillListScreen() {
                 >
                   {item.name}
                 </Text>
+                {item.pillNames && item.pillNames.length > 0 && (
+                  <Text
+                    variant="bodySmall"
+                    style={{
+                      color: theme.colors.onSurfaceVariant,
+                      marginTop: 4,
+                    }}
+                  >
+                    포함: {item.pillNames.join(", ")}
+                  </Text>
+                )}
                 {item.company && (
                   <Text
                     variant="bodyMedium"
-                    style={{ color: "gray", marginTop: 6 }} // 간격 확대
+                    style={{ color: "gray", marginTop: 4 }}
                   >
                     {item.company}
                   </Text>
                 )}
+                <Text
+                  variant="titleSmall"
+                  style={{
+                    color: theme.colors.primary,
+                    marginTop: 4,
+                    fontWeight: "bold",
+                  }}
+                >
+                  {getDaysLabel(item.days)}
+                </Text>
               </View>
-              {renderSlotIcons(item.slots, item.id)}
+
+              {/* 설정 버튼 영역 */}
+              <View style={{ alignItems: "flex-end", flexDirection: "column" }}>
+                <TouchableOpacity
+                  onPress={() => togglePillActive(item.id, item.isActive)}
+                  style={{ padding: 8, marginBottom: 4 }}
+                >
+                  <Icon
+                    source={item.isActive ? "bell-ring" : "bell-off"}
+                    color={
+                      item.isActive
+                        ? theme.colors.primary
+                        : theme.colors.onSurfaceDisabled
+                    }
+                    size={24}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleDeletePill(item.id)}
+                  style={{ padding: 8 }}
+                >
+                  <Icon
+                    source="trash-can-outline"
+                    color={theme.colors.error}
+                    size={24}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
 
-            <Text
-              variant="titleSmall"
-              style={{
-                color: theme.colors.primary,
-                marginTop: 0,
-                fontWeight: "bold",
-              }}
-            >
-              {getDaysLabel(item.days)}
-            </Text>
-          </View>
+            <Divider style={{ marginBottom: 16, marginTop: 8 }} />
 
-          <View style={styles.settingContainer}>
-            <TouchableOpacity
-              onPress={() => togglePillActive(item.id, item.isActive)}
-              style={[
-                styles.settingGroup,
-                {
-                  backgroundColor: item.isActive
-                    ? theme.colors.primaryContainer
-                    : "#f5f5f5",
-                  borderColor: item.isActive ? theme.colors.primary : "#e0e0e0",
-                  borderWidth: 1,
-                  paddingVertical: 8,
-                  paddingHorizontal: 16,
-                  borderRadius: 24, // 둥근 캡슐 모양
-                  marginBottom: 4,
-                  flexDirection: "row",
-                  alignItems: "center",
-                  justifyContent: "center",
-                },
-              ]}
-            >
-              <IconButton
-                icon={item.isActive ? "bell-ring" : "bell-off"}
-                size={18}
-                iconColor={
-                  item.isActive ? theme.colors.onPrimaryContainer : "#757575"
-                }
-                style={{ margin: 0, padding: 0, width: 22, height: 22 }}
-              />
-              <Text
-                variant="labelLarge"
-                style={{
-                  fontWeight: "bold",
-                  color: item.isActive
-                    ? theme.colors.onPrimaryContainer
-                    : "#757575",
-                  marginLeft: 4,
-                }}
-              >
-                {item.isActive ? "알림 켜짐" : "알림 꺼짐"}
-              </Text>
-            </TouchableOpacity>
-
-            <Button
-              icon="trash-can-outline"
-              mode="contained-tonal"
-              buttonColor={theme.colors.errorContainer}
-              textColor={theme.colors.onErrorContainer}
-              onPress={() => handleDeletePill(item.id)}
-              compact
-              style={{ marginTop: 8, width: "100%" }}
-              labelStyle={{ marginVertical: 4, height: 20 }}
-            >
-              삭제
-            </Button>
+            {/* 시간대별 리스트 */}
+            <View>{renderSlotIcons(item.slots, item.id)}</View>
           </View>
         </Card.Content>
-
-        {/* 복용 완료 버튼: 활성 상태이고 복용할 슬롯이 남았을 때만 표시 */}
-        {item.isActive && nextPendingSlot && (
-          <Card.Actions
-            style={{ paddingTop: 0, paddingBottom: 16, paddingRight: 16 }}
-          >
-            <Button
-              mode="contained"
-              icon="check"
-              onPress={() => handleCompleteTask(item.id, nextPendingSlot)}
-              style={{ flex: 1, borderRadius: 8 }}
-              contentStyle={{ height: 40 }}
-              buttonColor={theme.colors.tertiary} // Action: Orange
-              textColor={theme.colors.onTertiary}
-            >
-              {slotLabels[nextPendingSlot]} 복용 완료
-            </Button>
-          </Card.Actions>
-        )}
       </Card>
     );
   };

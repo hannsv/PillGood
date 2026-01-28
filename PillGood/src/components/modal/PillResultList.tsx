@@ -10,11 +10,13 @@ export interface PillResult {
 
 export interface PillResultListProps {
   data?: PillResult[];
+  selectedIds?: string[];
   onSelect?: (item: PillResult) => void;
 }
 
 export default function PillResultList({
   data = [],
+  selectedIds = [],
   onSelect,
 }: PillResultListProps) {
   const theme = useTheme();
@@ -28,6 +30,8 @@ export default function PillResultList({
   }
 
   const renderItem = ({ item }: { item: PillResult }) => {
+    const isSelected = selectedIds.includes(item.id);
+
     // 직접 입력한 항목
     if (item.isCustom) {
       return (
@@ -37,11 +41,14 @@ export default function PillResultList({
           left={(props) => (
             <List.Icon
               {...props}
-              icon="pencil-plus-outline"
+              icon={isSelected ? "checkbox-marked" : "pencil-plus-outline"}
               color={theme.colors.primary}
             />
           )}
-          style={styles.customItem}
+          style={[
+            styles.customItem,
+            isSelected && { backgroundColor: theme.colors.primaryContainer },
+          ]}
           onPress={() => onSelect?.(item)}
         />
       );
@@ -52,7 +59,14 @@ export default function PillResultList({
       <List.Item
         title={item.name}
         description={item.company || "제조사 정보 없음"}
-        left={(props) => <List.Icon {...props} icon="pill" />}
+        left={(props) => (
+          <List.Icon
+            {...props}
+            icon={isSelected ? "checkbox-marked" : "pill"}
+            color={isSelected ? theme.colors.primary : props.color}
+          />
+        )}
+        style={isSelected && { backgroundColor: theme.colors.primaryContainer }}
         onPress={() => onSelect?.(item)}
       />
     );

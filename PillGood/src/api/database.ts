@@ -15,50 +15,62 @@ const generateUUID = () => {
 };
 
 /**
- * 약 추가 (Transaction)
- * PillGroup -> Pill -> Schedules 순서로 저장
+ * 약 그룹 추가 (다중 약 지원)
  */
-export const addPillToDB = async (pill: RegisteredPill) => {
+export const addPillToDB = async (
+  pills: RegisteredPill[],
+  groupTitle?: string,
+) => {
   const db = await dbPromise;
 
   // 1. 그룹 ID 생성
   const groupId = generateUUID();
   const now = new Date().toISOString();
 
+  // 그룹 제목: 지정되지 않았으면 첫 번째 약 이름 + "등"
+  let title = groupTitle;
+  if (!title) {
+    if (pills.length > 1) title = `${pills[0].name} 외 ${pills.length - 1}개`;
+    else title = pills[0].name;
+  }
+
   try {
-    // 2. PillGroup 추가 (단일 약이지만 그룹으로 관리)
+    // 2. PillGroup 추가
     await db.runAsync(
       "INSERT INTO PillGroups (id, user_id, title, description, created_at) VALUES (?, ?, ?, ?, ?)",
-      [groupId, "user-default", pill.name, pill.company || "", now],
+      [groupId, "user-default", title, pills[0].company || "", now],
     );
 
-    // 3. Pill 추가
-    // RegisteredPill의 id는 검색 결과의 ID이므로, 로컬 DB용 유니크 ID는 새로 생성하거나 그대로 사용 (여기서는 중복 방지를 위해 pill.id + 랜덤 사용 추천하지만, 편의상 그대로 사용하되 충돌 주의)
-    // 실제로는 물리적 약 인스턴스이므로 새로 생성하는 게 맞음.
-    const pillInstanceId = generateUUID();
-    await db.runAsync(
-      "INSERT INTO Pills (id, group_id, name, company, memo) VALUES (?, ?, ?, ?, ?)",
-      [pillInstanceId, groupId, pill.name, pill.company || "", ""],
-    );
+    // 3. Pills 추가 (배열 순회)
+    for (const pill of pills) {
+      const pillInstanceId = generateUUID();
+      await db.runAsync(
+        "INSERT INTO Pills (id, group_id, name, company, memo) VALUES (?, ?, ?, ?, ?)",
+        [pillInstanceId, groupId, pill.name, pill.company || "", ""],
+      );
+    }
 
-    // 4. Schedules 추가 (선택된 슬롯만큼)
-    for (const slot of pill.slots) {
+    // 4. Schedules 추가 (첫 번째 약의 스케줄을 그룹 스케줄로 사용 - 현재 UI상 모든 약이 동일 스케줄 공유)
+    // RegisteredPill[]을 받지만, 스케줄은 공유한다고 가정.
+    const sharedSlots = pills[0].slots;
+    const sharedDays = pills[0].days;
+    const isActive = pills[0].isActive;
+
+    for (const slot of sharedSlots) {
       const scheduleId = generateUUID();
-      // UI에서 선택한 days 저장 (빈 배열이면 매일 복용을 의미하도록 로직 처리 필요)
       await db.runAsync(
         "INSERT INTO Schedules (id, group_id, slot, time, days, is_active) VALUES (?, ?, ?, ?, ?, ?)",
         [
           scheduleId,
           groupId,
           slot,
-          null,
-          JSON.stringify(pill.days || []),
-          pill.isActive ? 1 : 0,
+          null, // 시간은 차후 상세 설정
+          JSON.stringify(sharedDays || []),
+          isActive ? 1 : 0,
         ],
       );
     }
-
-    console.log("Pill added to DB:", pill.name);
+    console.log("Pill group added successfully:", title);
   } catch (error) {
     console.error("Error adding pill to DB:", error);
     throw error;
@@ -111,6 +123,13 @@ export const getPillsFromDB = async (): Promise<RegisteredPill[]> => {
         }
       }
 
+      // 3. 그룹에 포함된 약 목록 가져오기
+      const pillsInGroup = await db.getAllAsync<{ name: string }>(
+        "SELECT name FROM Pills WHERE group_id = ?",
+        [group.id],
+      );
+      const pillNames = pillsInGroup.map((p) => p.name);
+
       results.push({
         id: group.id, // 리스트 키로 그룹 ID 사용
         name: group.title,
@@ -118,6 +137,7 @@ export const getPillsFromDB = async (): Promise<RegisteredPill[]> => {
         slots: slots,
         days: days,
         isActive: isActive,
+        pillNames: pillNames, // 약 이름 목록 추가
         isCustom: false, // DB에서 불러온건지 확인용
       });
     }
