@@ -3,6 +3,7 @@ import { View, StyleSheet, SectionList, RefreshControl } from "react-native";
 import { Text, Card, Avatar, useTheme } from "react-native-paper";
 import { getAllHistory, HistoryItem } from "../api/database";
 import { eventBus } from "../utils/eventBus";
+import ExpandableCalendar from "../components/history/ExpandableCalendar";
 
 interface SectionData {
   title: string;
@@ -11,31 +12,56 @@ interface SectionData {
 
 export default function HistoryScreen() {
   const theme = useTheme();
-  const [sections, setSections] = useState<SectionData[]>([]);
+  // const [sections, setSections] = useState<SectionData[]>([]);
+  const [allData, setAllData] = useState<HistoryItem[]>([]);
+  const [selectedDate, setSelectedDate] = useState(new Date());
   const [refreshing, setRefreshing] = useState(false);
 
   const loadHistory = async () => {
     const rawData = await getAllHistory();
+    // 날짜 역순 정렬 (최신순)
+    rawData.sort(
+      (a, b) => new Date(b.takenAt).getTime() - new Date(a.takenAt).getTime(),
+    );
+    setAllData(rawData);
+  };
 
-    // 데이터 가공: 날짜별 그룹화
-    const grouped: { [key: string]: HistoryItem[] } = {};
+  const getMarkedDates = () => {
+    const dates = new Set<string>();
+    allData.forEach((item) => {
+      const d = new Date(item.takenAt);
+      const dateString = `${d.getFullYear()}-${(d.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}-${d.getDate().toString().padStart(2, "0")}`;
+      dates.add(dateString);
+    });
+    return Array.from(dates);
+  };
 
-    rawData.forEach((item) => {
-      const date = new Date(item.takenAt);
-      const dateKey = `${date.getFullYear()}년 ${date.getMonth() + 1}월 ${date.getDate()}일`;
+  const getFilteredSections = (): SectionData[] => {
+    const targetDateKey = `${selectedDate.getFullYear()}년 ${
+      selectedDate.getMonth() + 1
+    }월 ${selectedDate.getDate()}일`;
 
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
-      }
-      grouped[dateKey].push(item);
+    // 선택된 날짜의 데이터 필터링
+    const targetDayStart = new Date(selectedDate);
+    targetDayStart.setHours(0, 0, 0, 0);
+    const targetDayEnd = new Date(selectedDate);
+    targetDayEnd.setHours(23, 59, 59, 999);
+
+    const filtered = allData.filter((item) => {
+      const d = new Date(item.takenAt);
+      return d >= targetDayStart && d <= targetDayEnd;
     });
 
-    const result: SectionData[] = Object.keys(grouped).map((key) => ({
-      title: key,
-      data: grouped[key],
-    }));
+    if (filtered.length === 0) return [];
 
-    setSections(result);
+    return [
+      {
+        title: targetDateKey,
+        data: filtered,
+      },
+    ];
   };
 
   const onRefresh = useCallback(async () => {
@@ -121,20 +147,33 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.container}>
-      {sections.length === 0 ? (
+      <ExpandableCalendar
+        selectedDate={selectedDate}
+        onSelectDate={setSelectedDate}
+        markedDates={getMarkedDates()}
+      />
+      {getFilteredSections().length === 0 ? (
         <View style={styles.emptyState}>
-          <Avatar.Icon
-            size={64}
-            icon="history"
-            style={{ backgroundColor: "#e0e0e0", marginBottom: 16 }}
-          />
-          <Text variant="bodyLarge" style={{ color: "gray" }}>
-            아직 복용 기록이 없습니다.
-          </Text>
+          {allData.length === 0 ? (
+            <>
+              <Avatar.Icon
+                size={64}
+                icon="history"
+                style={{ backgroundColor: "#e0e0e0", marginBottom: 16 }}
+              />
+              <Text variant="bodyLarge" style={{ color: "gray" }}>
+                아직 복용 기록이 없습니다.
+              </Text>
+            </>
+          ) : (
+            <Text variant="bodyLarge" style={{ color: "gray" }}>
+              선택한 날짜의 기록이 없습니다.
+            </Text>
+          )}
         </View>
       ) : (
         <SectionList
-          sections={sections}
+          sections={getFilteredSections()}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           renderSectionHeader={renderSectionHeader}
