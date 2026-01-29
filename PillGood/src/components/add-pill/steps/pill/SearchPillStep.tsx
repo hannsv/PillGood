@@ -38,6 +38,7 @@ export default function SearchPillStep({
           }}
         >
           {groupName}
+          <Text variant="headlineSmall"> 에</Text>
         </Text>
         <Text variant="headlineSmall" style={{ textAlign: "center" }}>
           어떤 약을 추가할까요?
