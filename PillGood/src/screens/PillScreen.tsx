@@ -28,7 +28,11 @@ import AddPillModal, {
   RegisteredPill,
 } from "../components/add-pill/AddPillModal";
 import TopTimeBanner from "../components/home/TopTimeBanner";
-import { TimeSlot } from "../components/common/TimeSlotSelector";
+import {
+  TimeSlot,
+  SLOT_CONFIG,
+  formatTime,
+} from "../components/common/TimeSlotSelector";
 import { DayOfWeek } from "../components/common/DaySelector";
 import DayFilterBar, { FilterDayKey } from "../components/home/DayFilterBar";
 import {
@@ -378,7 +382,8 @@ function PillListScreen() {
                   fontSize: 18,
                 }}
               >
-                {slotLabels[currentSlot]} 복용하기
+                {slotLabels[currentSlot]} (
+                {formatTime(SLOT_CONFIG[currentSlot].time)}) 복용하기
               </Text>
               <Text
                 variant="bodySmall"

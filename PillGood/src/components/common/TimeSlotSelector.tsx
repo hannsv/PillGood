@@ -8,7 +8,7 @@ interface TimeSlotSelectorProps {
   onChange: (slots: TimeSlot[]) => void;
 }
 
-const SLOT_CONFIG: {
+export const SLOT_CONFIG: {
   [key in TimeSlot]: { label: string; icon: string; time: number };
 } = {
   morning: { label: "아침", icon: "weather-sunny", time: 9 }, // 09:00
@@ -17,7 +17,7 @@ const SLOT_CONFIG: {
   bedtime: { label: "자기전", icon: "bed", time: 22 }, // 22:00
 };
 
-const formatTime = (hour: number) => {
+export const formatTime = (hour: number) => {
   return `${hour.toString().padStart(2, "0")}:00`;
 };
 
