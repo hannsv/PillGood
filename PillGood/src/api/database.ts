@@ -1,7 +1,10 @@
 import * as SQLite from "expo-sqlite";
 import { RegisteredPill } from "../components/add-pill/AddPillModal";
 import { TimeSlot } from "../components/common/TimeSlotSelector";
-import { schedulePillNotifications, cancelPillNotifications } from "../utils/notification";
+import {
+  schedulePillNotifications,
+  cancelPillNotifications,
+} from "../utils/notification";
 import { DayOfWeek } from "../components/common/DaySelector";
 
 // 데이터베이스 열기 (파일 이름: pillgood.db)
@@ -278,12 +281,15 @@ export const updatePillGroupTitle = async (
 /**
  * 앱 설정 (시간대 등) 관리
  */
-export const getAppSetting = async (key: string, defaultValue: string): Promise<string> => {
+export const getAppSetting = async (
+  key: string,
+  defaultValue: string,
+): Promise<string> => {
   const db = await dbPromise;
   try {
     const result = await db.getFirstAsync<{ value: string }>(
       "SELECT value FROM AppSettings WHERE key = ?",
-      [key]
+      [key],
     );
     return result ? result.value : defaultValue;
   } catch (error) {
@@ -296,11 +302,20 @@ export const setAppSetting = async (key: string, value: string) => {
   const db = await dbPromise;
   try {
     // Upsert implementation for SQLite
-    const existing = await db.getFirstAsync("SELECT key FROM AppSettings WHERE key = ?", [key]);
+    const existing = await db.getFirstAsync(
+      "SELECT key FROM AppSettings WHERE key = ?",
+      [key],
+    );
     if (existing) {
-      await db.runAsync("UPDATE AppSettings SET value = ? WHERE key = ?", [value, key]);
+      await db.runAsync("UPDATE AppSettings SET value = ? WHERE key = ?", [
+        value,
+        key,
+      ]);
     } else {
-      await db.runAsync("INSERT INTO AppSettings (key, value) VALUES (?, ?)", [key, value]);
+      await db.runAsync("INSERT INTO AppSettings (key, value) VALUES (?, ?)", [
+        key,
+        value,
+      ]);
     }
   } catch (error) {
     console.error(`Failed to set setting ${key}:`, error);

@@ -5,7 +5,6 @@ import { TimeSlot, SLOT_CONFIG } from "../components/common/TimeSlotSelector";
 import { DayOfWeek } from "../components/common/DaySelector";
 import { getAppSetting } from "../api/database"; // DB에서 설정값 가져오기 위해 import
 
-
 // 알림 핸들러 설정 (앱이 켜져 있을 때 알림 처리)
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -35,27 +34,28 @@ export async function initLocalNotifications() {
   try {
     // 1. 현재 권한 상태 확인
     // Expo Go SDK 53+ Android 이슈 회피: 일반적인 getPermissionsAsync 사용 자제
-    let finalStatus = 'undetermined';
+    let finalStatus = "undetermined";
 
-    if (Platform.OS === 'android' && Platform.Version >= 33) {
+    if (Platform.OS === "android" && Platform.Version >= 33) {
       // Android 13+에서는 PermissionsAndroid를 사용하여 POST_NOTIFICATIONS 권한 직접 요청
       const granted = await PermissionsAndroid.request(
-        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS
+        PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
       );
       if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-        finalStatus = 'granted';
+        finalStatus = "granted";
       } else {
-        finalStatus = 'denied';
+        finalStatus = "denied";
       }
     } else {
-        // iOS 또는 구형 Android
-        const { status: existingStatus } = await Notifications.getPermissionsAsync();
-        finalStatus = existingStatus;
-        
-        if (existingStatus !== "granted") {
-            const { status } = await Notifications.requestPermissionsAsync();
-            finalStatus = status;
-        }
+      // iOS 또는 구형 Android
+      const { status: existingStatus } =
+        await Notifications.getPermissionsAsync();
+      finalStatus = existingStatus;
+
+      if (existingStatus !== "granted") {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
+      }
     }
 
     if (finalStatus !== "granted") {
@@ -65,8 +65,11 @@ export async function initLocalNotifications() {
     return true;
   } catch (e) {
     // 권한 요청 중 오류 발생 시, 로컬 알림은 작동할 수 있으므로 true 반환 시도 또는 로그만 남김
-    console.warn("Error checking notifications permissions (ignoring for local notifications):", e);
-    return true; 
+    console.warn(
+      "Error checking notifications permissions (ignoring for local notifications):",
+      e,
+    );
+    return true;
   }
 }
 
@@ -81,7 +84,7 @@ export async function schedulePillNotifications(
   pillId: string,
   pillName: string,
   slots: TimeSlot[],
-  days: DayOfWeek[] = []
+  days: DayOfWeek[] = [],
 ) {
   // 기존 이 약에 대한 알림 모두 취소 (중복 방지)
   await cancelPillNotifications(pillId);
@@ -105,7 +108,10 @@ export async function schedulePillNotifications(
     }
 
     // DB에서 해당 슬롯의 설정된 시간 가져오기 (없으면 기본값 사용)
-    const savedTime = await getAppSetting(`time_${slot}`, timeConfig.time.toString());
+    const savedTime = await getAppSetting(
+      `time_${slot}`,
+      timeConfig.time.toString(),
+    );
     const targetHour = parseInt(savedTime, 10);
 
     // 슬롯별 알림 메시지
@@ -122,8 +128,8 @@ export async function schedulePillNotifications(
           repeats: true,
         };
         // Android에서는 trigger에 channelId가 필요할 수 있음 (또는 type 명시)
-        if (Platform.OS === 'android') {
-           trigger.channelId = 'default';
+        if (Platform.OS === "android") {
+          trigger.channelId = "default";
         }
 
         await Notifications.scheduleNotificationAsync({
@@ -131,7 +137,7 @@ export async function schedulePillNotifications(
             title,
             body,
             sound: "default",
-            data: { channelId: 'default' }, // content data에도 추가
+            data: { channelId: "default" }, // content data에도 추가
           },
           trigger,
           identifier,
@@ -152,8 +158,8 @@ export async function schedulePillNotifications(
               minute: 0,
               repeats: true,
             };
-            if (Platform.OS === 'android') {
-                trigger.channelId = 'default';
+            if (Platform.OS === "android") {
+              trigger.channelId = "default";
             }
 
             await Notifications.scheduleNotificationAsync({
@@ -161,7 +167,7 @@ export async function schedulePillNotifications(
                 title,
                 body,
                 sound: "default",
-                data: { channelId: 'default' },
+                data: { channelId: "default" },
               },
               trigger,
               identifier,
@@ -184,7 +190,7 @@ export async function schedulePillNotifications(
 export async function cancelPillNotifications(pillId: string) {
   // 1. 현재 예약된 모든 알림 가져오기
   const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-  
+
   // 2. 해당 pillId를 포함하는 identifier 찾아서 취소
   for (const item of scheduled) {
     if (item.identifier.startsWith(`${pillId}_`)) {
@@ -198,8 +204,8 @@ export async function cancelPillNotifications(pillId: string) {
  */
 export async function sendTestNotification() {
   const trigger: any = { seconds: 3, repeats: false };
-  if (Platform.OS === 'android') {
-    trigger.channelId = 'default';
+  if (Platform.OS === "android") {
+    trigger.channelId = "default";
   }
 
   await Notifications.scheduleNotificationAsync({
