@@ -161,9 +161,8 @@ function AddPillModal({
   };
 
   const handleProceedToSetting = () => {
-    if (selectedPills.length > 0) {
-      setStep("days"); // 요일 설정으로 이동
-    }
+    // 그냥 넘어가도록 (디버깅용)
+    setStep("days");
   };
 
   const handleBack = () => {
