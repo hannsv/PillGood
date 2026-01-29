@@ -19,9 +19,9 @@ export default function DayFrequencyStep({
     <View style={styles.centerContainer}>
       <Text
         variant="headlineSmall"
-        style={{ marginBottom: 10, textAlign: "center" }}
+        style={{ marginBottom: 30, textAlign: "center", fontWeight: "bold" }}
       >
-        언제 드시나요?
+        무슨 요일에 드시나요?
       </Text>
 
       <Button
@@ -43,7 +43,7 @@ export default function DayFrequencyStep({
         }}
         labelStyle={{ fontSize: 18 }}
       >
-        요일별
+        요일마다
       </Button>
     </View>
   );

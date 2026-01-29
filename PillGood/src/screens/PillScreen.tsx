@@ -5,6 +5,7 @@ import {
   FlatList,
   Alert,
   TouchableOpacity,
+  TextInput,
 } from "react-native";
 import {
   Button,
@@ -17,14 +18,19 @@ import {
   FAB,
   Icon,
   Divider,
+  Portal,
+  Dialog,
+  TextInput as PaperTextInput,
 } from "react-native-paper";
 // import { useFocusEffect } from "@react-navigation/native"; // 내비게이션 라이브러리 미사용으로 제거
 
-import AddPillModal, { RegisteredPill } from "../components/modal/AddPillModal";
-import TopTimeBanner from "../components/banner/TopTimeBannner";
-import { TimeSlot } from "../components/modal/TimeSlotSelector";
-import { DayOfWeek } from "../components/modal/DaySelector";
-import DayFilterBar, { FilterDayKey } from "../components/nav/DayFilterBar";
+import AddPillModal, {
+  RegisteredPill,
+} from "../components/add-pill/AddPillModal";
+import TopTimeBanner from "../components/home/TopTimeBanner";
+import { TimeSlot } from "../components/common/TimeSlotSelector";
+import { DayOfWeek } from "../components/common/DaySelector";
+import DayFilterBar, { FilterDayKey } from "../components/home/DayFilterBar";
 import {
   addPillToDB,
   getPillsFromDB,
@@ -32,15 +38,62 @@ import {
   togglePillActiveDB,
   addPillHistory,
   getTodayCompletedTasks,
+  updatePillGroupTitle,
 } from "../api/database";
 import { eventBus } from "../utils/eventBus";
 
 function PillListScreen() {
   const [visible, setVisible] = useState(false);
+
+  // 편집 모드 관련 상태
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [renameDialogVisible, setRenameDialogVisible] = useState(false);
+  const [renameText, setRenameText] = useState("");
+  const [targetRenameId, setTargetRenameId] = useState<string | null>(null);
+
   const theme = useTheme();
 
   const [pillList, setPillList] = useState<RegisteredPill[]>([]);
-  const [filterDay, setFilterDay] = useState<FilterDayKey>(null);
+
+  // 이름 변경 다이얼로그 열기
+  const openRenameDialog = (id: string, currentName: string) => {
+    setTargetRenameId(id);
+    setRenameText(currentName);
+    setRenameDialogVisible(true);
+  };
+
+  // 이름 변경 실행
+  const handleRename = async () => {
+    if (!targetRenameId || renameText.trim() === "") {
+      setRenameDialogVisible(false);
+      return;
+    }
+    try {
+      await updatePillGroupTitle(targetRenameId, renameText);
+      await loadPills();
+    } catch (e) {
+      console.error(e);
+      Alert.alert("오류", "이름 수정에 실패했습니다.");
+    } finally {
+      setRenameDialogVisible(false);
+      setTargetRenameId(null);
+    }
+  };
+
+  // 오늘 요일로 초기값 설정
+  const [filterDay, setFilterDay] = useState<FilterDayKey>(() => {
+    const dayMap: { [key: number]: string } = {
+      0: "Sun",
+      1: "Mon",
+      2: "Tue",
+      3: "Wed",
+      4: "Thu",
+      5: "Fri",
+      6: "Sat",
+    };
+    return dayMap[new Date().getDay()] as FilterDayKey;
+  });
+
   // 완료된 작업 목록: "pillId_slot" 형식의 문자열 배열
   const [completedTasks, setCompletedTasks] = useState<string[]>([]);
 
@@ -73,14 +126,33 @@ function PillListScreen() {
   };
 
   const togglePillActive = async (id: string, currentStatus: boolean) => {
-    // UI 낙관적 업데이트
-    setPillList((prev) =>
-      prev.map((pill) =>
-        pill.id === id ? { ...pill, isActive: !pill.isActive } : pill,
-      ),
-    );
-    // DB 업데이트
-    await togglePillActiveDB(id, !currentStatus);
+    // 알림 끄는 경우에만 확인
+    if (currentStatus) {
+      Alert.alert("알림 끄기", "이 약의 복용 알림을 끄시겠습니까?", [
+        { text: "취소", style: "cancel" },
+        {
+          text: "끄기",
+          onPress: async () => {
+            // UI 낙관적 업데이트
+            setPillList((prev) =>
+              prev.map((pill) =>
+                pill.id === id ? { ...pill, isActive: !pill.isActive } : pill,
+              ),
+            );
+            // DB 업데이트
+            await togglePillActiveDB(id, !currentStatus);
+          },
+        },
+      ]);
+    } else {
+      // 켜는 건 바로 실행
+      setPillList((prev) =>
+        prev.map((pill) =>
+          pill.id === id ? { ...pill, isActive: !pill.isActive } : pill,
+        ),
+      );
+      await togglePillActiveDB(id, !currentStatus);
+    }
   };
 
   const handleDeletePill = (id: string) => {
@@ -199,108 +271,129 @@ function PillListScreen() {
     };
     const slotOrder: TimeSlot[] = ["morning", "lunch", "dinner", "bedtime"];
 
-    // 슬롯 정렬
+    // 1. 슬롯 정렬
     const sortedSlots = [...slots].sort(
       (a, b) => slotOrder.indexOf(a) - slotOrder.indexOf(b),
     );
 
-    return (
-      <View
-        style={{
-          marginTop: 8,
-          flexDirection: "row",
-          flexWrap: "wrap",
-          justifyContent: "space-between",
-        }}
-      >
-        {sortedSlots.map((slot) => {
-          const isDone = completedTasks.includes(`${pillId}_${slot}`);
-          return (
+    // 2. 아직 완료되지 않은 첫 번째 슬롯 찾기
+    const nextSlotIndex = sortedSlots.findIndex(
+      (slot) => !completedTasks.includes(`${pillId}_${slot}`),
+    );
+
+    // 3. 모든 슬롯이 완료된 경우
+    if (nextSlotIndex === -1 && sortedSlots.length > 0) {
+      return (
+        <View style={{ marginTop: 12, width: "100%" }}>
+          <View
+            style={{
+              width: "100%",
+              backgroundColor: "#E8F5E9",
+              borderRadius: 16,
+              paddingVertical: 16,
+              paddingHorizontal: 20,
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "flex-start", // 왼쪽 정렬로 변경
+              borderWidth: 1,
+              borderColor: "#C8E6C9",
+              minHeight: 80,
+              elevation: 0,
+            }}
+          >
             <View
-              key={slot}
               style={{
-                width: sortedSlots.length === 1 ? "100%" : "48%", // 1개일 땐 꽉 차게, 아니면 2열
-                backgroundColor: isDone ? "#f0f0f0" : "white",
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: isDone
-                  ? "transparent"
-                  : theme.colors.outlineVariant,
-                padding: 12,
-                alignItems: "center",
-                justifyContent: "space-between",
-                marginBottom: 8,
+                backgroundColor: "#C8E6C9",
+                borderRadius: 20,
+                padding: 8,
+                marginRight: 12,
               }}
             >
-              <View
+              <Icon source="check-bold" color="#2E7D32" size={24} />
+            </View>
+
+            <View style={{ flex: 1 }}>
+              <Text
+                variant="titleMedium"
                 style={{
-                  marginBottom: 12,
-                  width: "100%",
-                  alignItems: "center",
+                  color: "#2E7D32",
+                  fontWeight: "bold",
+                  fontSize: 18,
                 }}
               >
-                <Text
-                  variant="titleMedium"
-                  style={{
-                    color: isDone ? theme.colors.outline : theme.colors.primary,
-                    fontWeight: "bold",
-                  }}
-                >
-                  {slotLabels[slot]}
-                </Text>
-              </View>
-
-              {isDone ? (
-                <View
-                  style={{
-                    flexDirection: "row",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    paddingVertical: 8,
-                    width: "100%",
-                  }}
-                >
-                  <Icon
-                    source="check-bold"
-                    color={theme.colors.secondary}
-                    size={20}
-                  />
-                  <Text
-                    variant="labelMedium"
-                    style={{
-                      marginLeft: 4,
-                      color: theme.colors.secondary,
-                      fontWeight: "bold",
-                    }}
-                  >
-                    완료
-                  </Text>
-                </View>
-              ) : (
-                <TouchableOpacity
-                  onPress={() => handleCompleteTask(pillId, slot)}
-                  style={{
-                    backgroundColor: theme.colors.primary,
-                    borderRadius: 20,
-                    paddingVertical: 8,
-                    width: "100%",
-                    alignItems: "center",
-                  }}
-                >
-                  <Text
-                    variant="labelMedium"
-                    style={{
-                      color: theme.colors.onPrimary,
-                      fontWeight: "bold",
-                    }}
-                  >
-                    복용
-                  </Text>
-                </TouchableOpacity>
-              )}
+                오늘 복용 완료
+              </Text>
+              <Text
+                variant="bodySmall"
+                style={{
+                  color: "#2E7D32",
+                  opacity: 0.8,
+                }}
+              >
+                내일도 잊지 마세요!
+              </Text>
             </View>
-          );
-        })}
+          </View>
+        </View>
+      );
+    }
+
+    // 4. 다음 복용할 슬롯이 있는 경우
+    const currentSlot = sortedSlots[nextSlotIndex];
+
+    return (
+      <View style={{ marginTop: 12, width: "100%" }}>
+        <TouchableOpacity
+          onPress={() => handleCompleteTask(pillId, currentSlot)}
+          style={{
+            width: "100%",
+            backgroundColor: theme.colors.primaryContainer,
+            borderRadius: 16,
+            paddingVertical: 16,
+            paddingHorizontal: 20,
+            flexDirection: "row",
+            alignItems: "center",
+            justifyContent: "space-between",
+            elevation: 2,
+            minHeight: 80, // 최소 높이 강제 지정으로 크기 통일
+          }}
+        >
+          <View style={{ flexDirection: "row", alignItems: "center" }}>
+            <View
+              style={{
+                backgroundColor: theme.colors.primary,
+                borderRadius: 20,
+                padding: 8,
+                marginRight: 12,
+              }}
+            >
+              <Icon source="pill" color={theme.colors.onPrimary} size={24} />
+            </View>
+            <View>
+              <Text
+                variant="titleMedium"
+                style={{
+                  color: theme.colors.onPrimaryContainer,
+                  fontWeight: "bold",
+                  fontSize: 18,
+                }}
+              >
+                {slotLabels[currentSlot]} 복용하기
+              </Text>
+              <Text
+                variant="bodySmall"
+                style={{ color: theme.colors.onPrimaryContainer, opacity: 0.7 }}
+              >
+                진행 상황: {nextSlotIndex} / {sortedSlots.length}
+              </Text>
+            </View>
+          </View>
+          <Icon
+            source="chevron-right"
+            size={28}
+            color={theme.colors.onPrimaryContainer}
+          />
+        </TouchableOpacity>
       </View>
     );
   };
@@ -339,7 +432,7 @@ function PillListScreen() {
         ]}
       >
         <Card.Content style={styles.cardContent}>
-          <View style={{ flexDirection: "column" }}>
+          <View style={{ width: "100%" }}>
             <View
               style={{
                 flexDirection: "row",
@@ -349,76 +442,115 @@ function PillListScreen() {
               }}
             >
               <View style={{ flex: 1, marginRight: 8 }}>
-                <Text
-                  variant="headlineSmall"
-                  style={[
-                    styles.pillName,
-                    item.isActive &&
-                      allDone && {
-                        textDecorationLine: "line-through",
-                        color: "gray",
-                      },
-                  ]}
-                >
-                  {item.name}
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center" }}>
+                  <Text
+                    variant="headlineSmall"
+                    style={[
+                      styles.pillName,
+                      item.isActive &&
+                        allDone && {
+                          textDecorationLine: "line-through",
+                          color: "gray",
+                        },
+                      { flexShrink: 1 },
+                    ]}
+                  >
+                    {item.name}
+                  </Text>
+                </View>
+
                 {item.pillNames && item.pillNames.length > 0 && (
                   <Text
-                    variant="bodySmall"
+                    variant="titleSmall"
                     style={{
-                      color: theme.colors.onSurfaceVariant,
+                      color: theme.colors.primary,
                       marginTop: 4,
+                      fontWeight: "bold",
                     }}
                   >
-                    포함: {item.pillNames.join(", ")}
+                    먹을 약 : {item.pillNames.join(", ")}
                   </Text>
                 )}
-                {item.company && (
-                  <Text
-                    variant="bodyMedium"
-                    style={{ color: "gray", marginTop: 4 }}
-                  >
-                    {item.company}
-                  </Text>
-                )}
+                {/* 제조사명 제거 */}
                 <Text
-                  variant="titleSmall"
+                  variant="bodySmall"
                   style={{
-                    color: theme.colors.primary,
+                    color: theme.colors.onSurfaceVariant,
                     marginTop: 4,
-                    fontWeight: "bold",
                   }}
                 >
-                  {getDaysLabel(item.days)}
+                  요일 : {getDaysLabel(item.days)}
                 </Text>
               </View>
 
               {/* 설정 버튼 영역 */}
-              <View style={{ alignItems: "flex-end", flexDirection: "column" }}>
-                <TouchableOpacity
-                  onPress={() => togglePillActive(item.id, item.isActive)}
-                  style={{ padding: 8, marginBottom: 4 }}
-                >
-                  <Icon
-                    source={item.isActive ? "bell-ring" : "bell-off"}
-                    color={
-                      item.isActive
-                        ? theme.colors.primary
-                        : theme.colors.onSurfaceDisabled
-                    }
-                    size={24}
-                  />
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => handleDeletePill(item.id)}
-                  style={{ padding: 8 }}
-                >
-                  <Icon
-                    source="trash-can-outline"
-                    color={theme.colors.error}
-                    size={24}
-                  />
-                </TouchableOpacity>
+              <View
+                style={{
+                  alignItems: "flex-end",
+                  flexDirection: "column",
+                  minWidth: isEditMode ? 100 : 40,
+                }}
+              >
+                {isEditMode ? (
+                  <View style={{ gap: 4 }}>
+                    <Button
+                      mode="outlined"
+                      icon="pencil"
+                      compact
+                      contentStyle={{ flexDirection: "row-reverse" }}
+                      onPress={() => openRenameDialog(item.id, item.name)}
+                    >
+                      이름 변경
+                    </Button>
+                    <Button
+                      mode="contained"
+                      icon="delete"
+                      buttonColor={theme.colors.error}
+                      compact
+                      contentStyle={{ flexDirection: "row-reverse" }}
+                      onPress={() => handleDeletePill(item.id)}
+                    >
+                      약 삭제
+                    </Button>
+                  </View>
+                ) : (
+                  <TouchableOpacity
+                    onPress={() => togglePillActive(item.id, item.isActive)}
+                    style={{
+                      padding: 8,
+                      marginBottom: 4,
+                      flexDirection: "row",
+                      alignItems: "center",
+                      backgroundColor: item.isActive
+                        ? theme.colors.elevation.level1
+                        : "transparent",
+                      borderRadius: 20,
+                      paddingHorizontal: 12,
+                    }}
+                  >
+                    <Text
+                      variant="labelMedium"
+                      style={{
+                        color: item.isActive
+                          ? theme.colors.primary
+                          : theme.colors.onSurfaceDisabled,
+                        marginRight: 8,
+                        fontWeight: "bold",
+                      }}
+                    >
+                      {item.isActive ? "켜짐" : "꺼짐"}
+                    </Text>
+                    <Icon
+                      source={item.isActive ? "bell-ring" : "bell-off"}
+                      color={
+                        item.isActive
+                          ? theme.colors.primary
+                          : theme.colors.onSurfaceDisabled
+                      }
+                      size={24}
+                    />
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
 
@@ -449,6 +581,27 @@ function PillListScreen() {
         <DayFilterBar selectedDay={filterDay} onSelect={setFilterDay} />
       </View>
 
+      <View style={{ paddingHorizontal: 20, paddingTop: 10 }}>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Text variant="titleMedium" style={{ fontWeight: "bold" }}>
+            내 약 목록
+          </Text>
+          <Button
+            mode={isEditMode ? "contained-tonal" : "text"}
+            onPress={() => setIsEditMode(!isEditMode)}
+            compact
+          >
+            {isEditMode ? "편집 완료" : "목록 편집"}
+          </Button>
+        </View>
+      </View>
+
       <AddPillModal
         visible={visible}
         onDismiss={() => setVisible(false)}
@@ -461,12 +614,24 @@ function PillListScreen() {
         </View>
       ) : (
         <FlatList
-          data={pillList.filter((p) => {
-            if (!filterDay) return true;
-            // 요일 지정이 없거나 빈 배열이면 '매일' -> 항상 표시
-            if (!p.days || p.days.length === 0) return true;
-            return p.days.includes(filterDay);
-          })}
+          data={pillList
+            .filter((p) => {
+              if (!filterDay) return true;
+              // 요일 지정이 없거나 빈 배열이면 '매일' -> 항상 표시
+              if (!p.days || p.days.length === 0) return true;
+              return p.days.includes(filterDay);
+            })
+            .sort((a, b) => {
+              // 완료 여부 기준 정렬 (미완료가 위로)
+              const aDone = a.slots.every((s) =>
+                completedTasks.includes(`${a.id}_${s}`),
+              );
+              const bDone = b.slots.every((s) =>
+                completedTasks.includes(`${b.id}_${s}`),
+              );
+              if (aDone === bDone) return 0;
+              return aDone ? 1 : -1;
+            })}
           keyExtractor={(item) => item.id}
           renderItem={renderPillItem}
           contentContainerStyle={styles.listContent}
@@ -481,6 +646,28 @@ function PillListScreen() {
         color={theme.colors.onTertiary}
         onPress={() => setVisible(true)}
       />
+
+      <Portal>
+        <Dialog
+          visible={renameDialogVisible}
+          onDismiss={() => setRenameDialogVisible(false)}
+        >
+          <Dialog.Title>이름 수정</Dialog.Title>
+          <Dialog.Content>
+            <PaperTextInput
+              label="그룹 이름"
+              value={renameText}
+              onChangeText={setRenameText}
+              mode="outlined"
+              autoFocus
+            />
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setRenameDialogVisible(false)}>취소</Button>
+            <Button onPress={handleRename}>확인</Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
     </View>
   );
 }
@@ -511,10 +698,8 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
   },
   cardContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 8, // 상하 여백 추가
+    paddingVertical: 12,
+    paddingHorizontal: 16,
   },
   infoContainer: {
     flex: 1,

@@ -183,6 +183,26 @@ export const togglePillActiveDB = async (
 };
 
 /**
+ * 그룹 이름 수정
+ */
+export const updatePillGroupTitle = async (
+  groupId: string,
+  newTitle: string,
+) => {
+  const db = await dbPromise;
+  try {
+    await db.runAsync("UPDATE PillGroups SET title = ? WHERE id = ?", [
+      newTitle,
+      groupId,
+    ]);
+    console.log("Updated pill group title:", groupId, newTitle);
+  } catch (error) {
+    console.error("Error updating pill group title:", error);
+    throw error;
+  }
+};
+
+/**
  * 복용 기록 추가
  */
 export const addPillHistory = async (groupId: string, slot: string) => {

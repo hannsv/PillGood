@@ -2,8 +2,8 @@ import { Modal, Portal, IconButton, Text, useTheme } from "react-native-paper";
 import { StyleSheet, View } from "react-native";
 import { useState, useEffect } from "react";
 import { PillResult } from "./PillResultList";
-import { TimeSlot } from "./TimeSlotSelector";
-import { DayOfWeek } from "./DaySelector";
+import { TimeSlot } from "../common/TimeSlotSelector";
+import { DayOfWeek } from "../common/DaySelector";
 import { getFrequentPills } from "../../api/database";
 
 // Import Step Components

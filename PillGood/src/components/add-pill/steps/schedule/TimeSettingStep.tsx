@@ -1,7 +1,7 @@
 import React from "react";
 import { View } from "react-native";
 import { Text, Button, useTheme } from "react-native-paper";
-import TimeSlotSelector, { TimeSlot } from "../../TimeSlotSelector";
+import TimeSlotSelector, { TimeSlot } from "../../../common/TimeSlotSelector";
 
 interface TimeSettingStepProps {
   selectedSlots: TimeSlot[];

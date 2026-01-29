@@ -1,7 +1,7 @@
 import { View, StyleSheet } from "react-native";
 import { Text, Button, Card, Avatar, useTheme } from "react-native-paper";
-import { RegisteredPill } from "../modal/AddPillModal";
-import { TimeSlot } from "../modal/TimeSlotSelector";
+import { RegisteredPill } from "../add-pill/AddPillModal";
+import { TimeSlot } from "../common/TimeSlotSelector";
 
 interface TopTimeBannerProps {
   nextPill?: RegisteredPill | null;
