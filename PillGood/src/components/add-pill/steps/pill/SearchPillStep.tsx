@@ -1,6 +1,6 @@
-import React from "react";
-import { View } from "react-native";
-import { Text, Searchbar, Button, useTheme } from "react-native-paper";
+import React, { useRef } from "react";
+import { View, TextInput, TouchableOpacity } from "react-native";
+import { Text, Button, useTheme, Icon } from "react-native-paper";
 
 interface SearchPillStepProps {
   groupName: string;
@@ -18,6 +18,12 @@ export default function SearchPillStep({
   styles,
 }: SearchPillStepProps) {
   const theme = useTheme();
+  const inputRef = useRef<TextInput>(null);
+
+  const handleClear = () => {
+    inputRef.current?.clear();
+    setPillName("");
+  };
 
   return (
     <View style={styles.centerContainer}>
@@ -38,14 +44,55 @@ export default function SearchPillStep({
         </Text>
       </View>
 
-      <Searchbar
-        value={pillName}
-        onChangeText={setPillName}
-        placeholder="약 이름을 입력하세요"
-        style={{ width: "90%", marginBottom: 20 }}
-        onSubmitEditing={onSearch} // Enter 키 입력 시 검색 실행
-        autoFocus
-      />
+      {/* React Native Paper Searchbar 대신 Native TextInput 사용 (한글 깨짐 방지) */}
+      <View
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          backgroundColor: theme.colors.elevation?.level2 || "#f5f5f5",
+          borderRadius: 28, // 둥근 모서리 (Searchbar 스타일)
+          height: 56,
+          width: "90%",
+          paddingHorizontal: 16,
+          marginBottom: 20,
+        }}
+      >
+        <Icon
+          source="magnify"
+          size={24}
+          color={theme.colors.onSurfaceVariant}
+        />
+        <TextInput
+          ref={inputRef}
+          defaultValue={pillName} // value 대신 defaultValue 사용
+          onChangeText={setPillName}
+          placeholder="약 이름을 입력하세요"
+          placeholderTextColor={theme.colors.onSurfaceVariant}
+          style={{
+            flex: 1,
+            marginLeft: 12,
+            fontSize: 16,
+            color: theme.colors.onSurface,
+            // 안드로이드 패딩 제거
+            paddingVertical: 0,
+          }}
+          onSubmitEditing={onSearch} // Enter 키 입력 시 검색 실행
+          autoFocus
+          returnKeyType="search"
+          autoCorrect={false}
+          spellCheck={false}
+        />
+        {pillName.length > 0 && (
+          <TouchableOpacity onPress={handleClear}>
+            <Icon
+              source="close"
+              size={20}
+              color={theme.colors.onSurfaceVariant}
+            />
+          </TouchableOpacity>
+        )}
+      </View>
+
       <Button
         mode="contained"
         onPress={onSearch}

@@ -50,7 +50,7 @@ export default function GroupNameStep({
           }}
         >
           <TextInput
-            value={groupName}
+            defaultValue={groupName}
             onChangeText={setGroupName}
             placeholder="그룹 이름을 입력하세요"
             style={{
@@ -61,6 +61,8 @@ export default function GroupNameStep({
             onSubmitEditing={onNext}
             returnKeyType="next"
             placeholderTextColor={theme.colors.onSurfaceDisabled}
+            autoCorrect={false}
+            spellCheck={false}
           />
         </View>
       </View>
