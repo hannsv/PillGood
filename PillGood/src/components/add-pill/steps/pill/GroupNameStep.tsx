@@ -1,6 +1,6 @@
 import React from "react";
-import { View } from "react-native";
-import { Text, TextInput, Button } from "react-native-paper";
+import { View, TextInput } from "react-native";
+import { Text, Button, useTheme } from "react-native-paper";
 
 interface GroupNameStepProps {
   groupName: string;
@@ -15,6 +15,8 @@ export default function GroupNameStep({
   onNext,
   styles,
 }: GroupNameStepProps) {
+  const theme = useTheme();
+
   return (
     <View style={styles.centerContainer}>
       <View style={{ width: "80%", marginBottom: 20 }}>
@@ -34,16 +36,33 @@ export default function GroupNameStep({
         >
           예: 혈압약, 비타민, 감기약 등
         </Text>
-        <TextInput
-          mode="outlined"
-          label="그룹 이름"
-          value={groupName}
-          onChangeText={setGroupName}
-          placeholder="그룹 이름을 입력하세요"
-          style={{ backgroundColor: "white" }}
-          autoFocus
-          onSubmitEditing={onNext}
-        />
+
+        {/* React Native Paper의 TextInput 대신 Native TextInput 사용 (한글 자소 분리 방지) */}
+        <View
+          style={{
+            borderColor: theme.colors.outline,
+            borderWidth: 1,
+            borderRadius: 4,
+            backgroundColor: "white",
+            paddingHorizontal: 12,
+            height: 56, // Paper TextInput 기본 높이와 유사하게
+            justifyContent: "center",
+          }}
+        >
+          <TextInput
+            value={groupName}
+            onChangeText={setGroupName}
+            placeholder="그룹 이름을 입력하세요"
+            style={{
+              fontSize: 16,
+              color: theme.colors.onSurface,
+            }}
+            autoFocus
+            onSubmitEditing={onNext}
+            returnKeyType="next"
+            placeholderTextColor={theme.colors.onSurfaceDisabled}
+          />
+        </View>
       </View>
       <Button
         mode="contained"

@@ -26,9 +26,6 @@ export default function TimeSettingStep({
       >
         언제 드시나요?
       </Text>
-      <Text variant="bodyLarge" style={{ color: "gray", marginBottom: 30 }}>
-        2단계: 시간 선택
-      </Text>
 
       <TimeSlotSelector selectedSlots={selectedSlots} onChange={onChange} />
 

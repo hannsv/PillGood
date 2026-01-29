@@ -341,7 +341,9 @@ function PillListScreen() {
           >
             {isAllDone
               ? "오늘 복용 완료"
-              : `${currentSlot ? slotLabels[currentSlot] : ""} 복용하기`}
+              : `${currentSlot ? slotLabels[currentSlot] : ""} (${
+                  currentSlot ? formatTime(SLOT_CONFIG[currentSlot].time) : ""
+                }) 복용하기`}
           </Text>
         </TouchableOpacity>
 
@@ -613,11 +615,19 @@ function PillListScreen() {
             내 약 목록
           </Text>
           <Button
-            mode={isEditMode ? "contained-tonal" : "text"}
+            mode={isEditMode ? "contained" : "contained-tonal"}
+            buttonColor={isEditMode ? theme.colors.primary : undefined}
+            textColor={
+              isEditMode
+                ? theme.colors.onPrimary
+                : theme.colors.onSecondaryContainer
+            }
             onPress={() => setIsEditMode(!isEditMode)}
-            compact
+            style={{ borderRadius: 20 }}
+            contentStyle={{ height: 36 }}
+            labelStyle={{ fontSize: 13, marginVertical: 0 }}
           >
-            {isEditMode ? "편집 완료" : "목록 편집"}
+            {isEditMode ? "완료" : "목록 편집"}
           </Button>
         </View>
       </View>

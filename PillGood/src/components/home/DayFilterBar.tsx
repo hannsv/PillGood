@@ -1,5 +1,5 @@
-import { ScrollView, StyleSheet, View } from "react-native";
-import { Chip, Text, useTheme } from "react-native-paper";
+import { ScrollView, StyleSheet, View, TouchableOpacity } from "react-native";
+import { Text, useTheme } from "react-native-paper";
 
 export type FilterDayKey =
   | "Mon"
@@ -17,7 +17,7 @@ interface DayFilterBarProps {
 }
 
 const DAYS: { key: FilterDayKey; label: string }[] = [
-  { key: null, label: "전체" },
+  { key: null, label: "매일" },
   { key: "Mon", label: "월" },
   { key: "Tue", label: "화" },
   { key: "Wed", label: "수" },
@@ -37,9 +37,13 @@ export default function DayFilterBar({
     <View style={styles.container}>
       <Text
         variant="labelMedium"
-        style={{ marginLeft: 4, marginBottom: 8, color: "gray" }}
+        style={{
+          marginLeft: 4,
+          marginBottom: 8,
+          color: theme.colors.outline,
+        }}
       >
-        요일별로 모아보기
+        요일별 목록 보기
       </Text>
       <ScrollView
         horizontal
@@ -49,27 +53,33 @@ export default function DayFilterBar({
         {DAYS.map((day) => {
           const isSelected = selectedDay === day.key;
           return (
-            <Chip
+            <TouchableOpacity
               key={day.label}
-              mode={isSelected ? "flat" : "outlined"}
-              selected={isSelected}
               onPress={() => onSelect(day.key)}
               style={[
-                styles.chip,
-                isSelected && {
-                  backgroundColor: theme.colors.primaryContainer,
-                },
+                styles.dayButton,
+                isSelected
+                  ? { backgroundColor: theme.colors.primary, borderWidth: 0 }
+                  : {
+                      backgroundColor: "transparent",
+                      borderWidth: 1,
+                      borderColor: theme.colors.outlineVariant,
+                    },
               ]}
-              textStyle={{
-                fontWeight: isSelected ? "bold" : "normal",
-                fontSize: 16,
-                marginVertical: 4,
-                marginHorizontal: 8,
-              }}
-              showSelectedOverlay={true}
+              activeOpacity={0.7}
             >
-              {day.label}
-            </Chip>
+              <Text
+                style={{
+                  color: isSelected
+                    ? theme.colors.onPrimary
+                    : theme.colors.onSurfaceVariant,
+                  fontSize: 13,
+                  fontWeight: isSelected ? "bold" : "normal",
+                }}
+              >
+                {day.label}
+              </Text>
+            </TouchableOpacity>
           );
         })}
       </ScrollView>
@@ -83,12 +93,15 @@ const styles = StyleSheet.create({
     backgroundColor: "transparent",
   },
   scrollContent: {
-    paddingHorizontal: 4,
+    paddingRight: 20,
+    gap: 8,
   },
-  chip: {
-    marginRight: 8,
+  dayButton: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
     borderRadius: 20,
-    height: 40,
     justifyContent: "center",
+    alignItems: "center",
+    minWidth: 48,
   },
 });
