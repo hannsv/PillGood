@@ -9,6 +9,7 @@ import { PaperProvider } from "react-native-paper";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { theme } from "./theme";
 import { initDatabase } from "./src/api/database";
+import { initLocalNotifications } from "./src/utils/notification";
 import { useEffect, useState } from "react";
 import { ActivityIndicator } from "react-native-paper";
 
@@ -19,6 +20,13 @@ export default function App() {
   useEffect(() => {
     const init = async () => {
       await initDatabase();
+      // 알림 권한 요청 및 채널 설정 (DB 초기화 후, UI 렌더링 전 수행)
+      const hasPermission = await initLocalNotifications();
+      if (hasPermission) {
+        console.log("✅ 알림 권한이 허용되어 있습니다.");
+      } else {
+        console.log("❌ 알림 권한이 없거나 거부되었습니다.");
+      }
       setIsDBReady(true);
     };
     init();

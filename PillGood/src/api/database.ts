@@ -1,6 +1,8 @@
 import * as SQLite from "expo-sqlite";
 import { RegisteredPill } from "../components/add-pill/AddPillModal";
 import { TimeSlot } from "../components/common/TimeSlotSelector";
+import { schedulePillNotifications, cancelPillNotifications } from "../utils/notification";
+import { DayOfWeek } from "../components/common/DaySelector";
 
 // 데이터베이스 열기 (파일 이름: pillgood.db)
 export const dbPromise = SQLite.openDatabaseAsync("pillgood.db");
@@ -75,6 +77,17 @@ export const addPillToDB = async (
         ],
       );
     }
+
+    // 알림 스케줄링
+    if (isActive) {
+      await schedulePillNotifications(
+        groupId,
+        title,
+        sharedSlots,
+        sharedDays as DayOfWeek[],
+      );
+    }
+
     console.log("Pill group added successfully:", title);
   } catch (error) {
     console.error("Error adding pill to DB:", error);
@@ -160,6 +173,9 @@ export const getPillsFromDB = async (): Promise<RegisteredPill[]> => {
 export const deletePillFromDB = async (groupId: string) => {
   const db = await dbPromise;
   try {
+    // 알림 취소
+    await cancelPillNotifications(groupId);
+
     await db.runAsync("DELETE FROM PillGroups WHERE id = ?", [groupId]);
     console.log("Deleted pill group:", groupId);
   } catch (error) {
@@ -182,6 +198,33 @@ export const togglePillActiveDB = async (
       activeVal,
       groupId,
     ]);
+
+    if (!isActive) {
+      await cancelPillNotifications(groupId);
+    } else {
+      // 정보 가져와서 알림 재등록
+      const group = await db.getFirstAsync<{ title: string }>(
+        "SELECT title FROM PillGroups WHERE id = ?",
+        [groupId],
+      );
+      const schedules = await db.getAllAsync<{ slot: string; days: string }>(
+        "SELECT slot, days FROM Schedules WHERE group_id = ?",
+        [groupId],
+      );
+
+      if (group && schedules.length > 0) {
+        const slots = schedules.map((s) => s.slot as TimeSlot);
+        let days: DayOfWeek[] = [];
+        try {
+          if (schedules[0].days) {
+            days = JSON.parse(schedules[0].days);
+          }
+        } catch (e) {
+          console.warn("Failed to parse days", e);
+        }
+        await schedulePillNotifications(groupId, group.title, slots, days);
+      }
+    }
   } catch (error) {
     console.error("Error toggling pill:", error);
   }
@@ -200,10 +243,67 @@ export const updatePillGroupTitle = async (
       newTitle,
       groupId,
     ]);
+
+    // 알림 업데이트 (활성 상태인 경우에만)
+    const schedules = await db.getAllAsync<{
+      slot: string;
+      days: string;
+      is_active: number;
+    }>("SELECT slot, days, is_active FROM Schedules WHERE group_id = ?", [
+      groupId,
+    ]);
+
+    const isActive = schedules.length > 0 && !!schedules[0].is_active;
+
+    if (isActive) {
+      const slots = schedules.map((s) => s.slot as TimeSlot);
+      let days: DayOfWeek[] = [];
+      try {
+        if (schedules[0].days) {
+          days = JSON.parse(schedules[0].days);
+        }
+      } catch (e) {
+        console.warn("Failed to parse days", e);
+      }
+      await schedulePillNotifications(groupId, newTitle, slots, days);
+    }
+
     console.log("Updated pill group title:", groupId, newTitle);
   } catch (error) {
     console.error("Error updating pill group title:", error);
     throw error;
+  }
+};
+
+/**
+ * 앱 설정 (시간대 등) 관리
+ */
+export const getAppSetting = async (key: string, defaultValue: string): Promise<string> => {
+  const db = await dbPromise;
+  try {
+    const result = await db.getFirstAsync<{ value: string }>(
+      "SELECT value FROM AppSettings WHERE key = ?",
+      [key]
+    );
+    return result ? result.value : defaultValue;
+  } catch (error) {
+    console.warn(`Failed to get setting ${key}:`, error);
+    return defaultValue;
+  }
+};
+
+export const setAppSetting = async (key: string, value: string) => {
+  const db = await dbPromise;
+  try {
+    // Upsert implementation for SQLite
+    const existing = await db.getFirstAsync("SELECT key FROM AppSettings WHERE key = ?", [key]);
+    if (existing) {
+      await db.runAsync("UPDATE AppSettings SET value = ? WHERE key = ?", [value, key]);
+    } else {
+      await db.runAsync("INSERT INTO AppSettings (key, value) VALUES (?, ?)", [key, value]);
+    }
+  } catch (error) {
+    console.error(`Failed to set setting ${key}:`, error);
   }
 };
 
@@ -481,7 +581,15 @@ export const initDatabase = async () => {
       );
     `);
 
-    // 7. 기본 사용자 추가 (없으면 생성)
+    // 7. 앱 설정 테이블
+    await db.execAsync(`
+      CREATE TABLE IF NOT EXISTS AppSettings (
+        key TEXT PRIMARY KEY NOT NULL,
+        value TEXT NOT NULL
+      );
+    `);
+
+    // 8. 기본 사용자 추가 (없으면 생성)
     // 외래 키 제약 조건을 만족하기 위해 필수
     const userCheck = await db.getFirstAsync(
       "SELECT * FROM Users WHERE id = ?",
