@@ -486,12 +486,14 @@ function PillListScreen() {
                 >
                   {item.name}
                 </Text>
-                {!isExpanded && (
+                {!isExpanded && item.pillNames && item.pillNames.length > 0 && (
                   <Text
                     variant="bodySmall"
-                    style={{ color: theme.colors.outline }}
+                    style={{ color: theme.colors.outline, marginTop: 2 }}
+                    numberOfLines={1}
+                    ellipsizeMode="tail"
                   >
-                    {getDaysLabel(item.days)}
+                    {item.pillNames.join(", ")}
                   </Text>
                 )}
               </View>
