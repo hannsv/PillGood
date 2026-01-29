@@ -1,6 +1,6 @@
 import * as SQLite from "expo-sqlite";
-import { RegisteredPill } from "../components/modal/AddPillModal";
-import { TimeSlot } from "../components/modal/TimeSlotSelector";
+import { RegisteredPill } from "../components/add-pill/AddPillModal";
+import { TimeSlot } from "../components/common/TimeSlotSelector";
 
 // 데이터베이스 열기 (파일 이름: pillgood.db)
 export const dbPromise = SQLite.openDatabaseAsync("pillgood.db");
@@ -30,8 +30,13 @@ export const addPillToDB = async (
   // 그룹 제목: 지정되지 않았으면 첫 번째 약 이름 + "등"
   let title = groupTitle;
   if (!title) {
-    if (pills.length > 1) title = `${pills[0].name} 외 ${pills.length - 1}개`;
-    else title = pills[0].name;
+    if (pills[0].group) {
+      title = pills[0].group;
+    } else if (pills.length > 1) {
+      title = `${pills[0].name} 외 ${pills.length - 1}개`;
+    } else {
+      title = pills[0].name;
+    }
   }
 
   try {

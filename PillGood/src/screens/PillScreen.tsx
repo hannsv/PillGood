@@ -55,6 +55,14 @@ function PillListScreen() {
   const [renameText, setRenameText] = useState("");
   const [targetRenameId, setTargetRenameId] = useState<string | null>(null);
 
+  // 펼쳐진 카드 ID 목록 관리
+  const [expandedPills, setExpandedPills] = useState<string[]>([]);
+  const toggleExpand = (id: string) => {
+    setExpandedPills((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id],
+    );
+  };
+
   const theme = useTheme();
 
   const [pillList, setPillList] = useState<RegisteredPill[]>([]);
@@ -280,125 +288,114 @@ function PillListScreen() {
       (a, b) => slotOrder.indexOf(a) - slotOrder.indexOf(b),
     );
 
-    // 2. 아직 완료되지 않은 첫 번째 슬롯 찾기
     const nextSlotIndex = sortedSlots.findIndex(
       (slot) => !completedTasks.includes(`${pillId}_${slot}`),
     );
 
-    // 3. 모든 슬롯이 완료된 경우
-    if (nextSlotIndex === -1 && sortedSlots.length > 0) {
-      return (
-        <View style={{ marginTop: 12, width: "100%" }}>
-          <View
-            style={{
-              width: "100%",
-              backgroundColor: "#E8F5E9",
-              borderRadius: 16,
-              paddingVertical: 16,
-              paddingHorizontal: 20,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "flex-start", // 왼쪽 정렬로 변경
-              borderWidth: 1,
-              borderColor: "#C8E6C9",
-              minHeight: 80,
-              elevation: 0,
-            }}
-          >
-            <View
-              style={{
-                backgroundColor: "#C8E6C9",
-                borderRadius: 20,
-                padding: 8,
-                marginRight: 12,
-              }}
-            >
-              <Icon source="check-bold" color="#2E7D32" size={24} />
-            </View>
-
-            <View style={{ flex: 1 }}>
-              <Text
-                variant="titleMedium"
-                style={{
-                  color: "#2E7D32",
-                  fontWeight: "bold",
-                  fontSize: 18,
-                }}
-              >
-                오늘 복용 완료
-              </Text>
-              <Text
-                variant="bodySmall"
-                style={{
-                  color: "#2E7D32",
-                  opacity: 0.8,
-                }}
-              >
-                내일도 잊지 마세요!
-              </Text>
-            </View>
-          </View>
-        </View>
-      );
-    }
-
-    // 4. 다음 복용할 슬롯이 있는 경우
-    const currentSlot = sortedSlots[nextSlotIndex];
+    // 4. 단일 버튼 인터페이스
+    const isAllDone = nextSlotIndex === -1 && sortedSlots.length > 0;
+    const currentSlot = !isAllDone ? sortedSlots[nextSlotIndex] : null;
 
     return (
-      <View style={{ marginTop: 12, width: "100%" }}>
+      <View style={{ marginTop: 12 }}>
+        {/* 메인 액션 버튼 */}
         <TouchableOpacity
-          onPress={() => handleCompleteTask(pillId, currentSlot)}
+          onPress={() => {
+            if (currentSlot) {
+              handleCompleteTask(pillId, currentSlot);
+            }
+          }}
+          disabled={isAllDone}
+          activeOpacity={0.8}
           style={{
             width: "100%",
-            backgroundColor: theme.colors.primaryContainer,
-            borderRadius: 16,
-            paddingVertical: 16,
-            paddingHorizontal: 20,
+            backgroundColor: isAllDone
+              ? theme.colors.surfaceVariant
+              : theme.colors.primary,
+            paddingVertical: 14,
+            borderRadius: 12,
             flexDirection: "row",
             alignItems: "center",
-            justifyContent: "space-between",
-            elevation: 2,
-            minHeight: 80, // 최소 높이 강제 지정으로 크기 통일
+            justifyContent: "center",
+            elevation: isAllDone ? 0 : 2,
           }}
         >
-          <View style={{ flexDirection: "row", alignItems: "center" }}>
-            <View
-              style={{
-                backgroundColor: theme.colors.primary,
-                borderRadius: 20,
-                padding: 8,
-                marginRight: 12,
-              }}
-            >
-              <Icon source="pill" color={theme.colors.onPrimary} size={24} />
-            </View>
-            <View>
-              <Text
-                variant="titleMedium"
-                style={{
-                  color: theme.colors.onPrimaryContainer,
-                  fontWeight: "bold",
-                  fontSize: 18,
-                }}
-              >
-                {slotLabels[currentSlot]} (
-                {formatTime(SLOT_CONFIG[currentSlot].time)}) 복용하기
-              </Text>
-              <Text
-                variant="bodySmall"
-                style={{ color: theme.colors.onPrimaryContainer, opacity: 0.7 }}
-              >
-                진행 상황: {nextSlotIndex} / {sortedSlots.length}
-              </Text>
-            </View>
-          </View>
           <Icon
-            source="chevron-right"
-            size={28}
-            color={theme.colors.onPrimaryContainer}
+            source={
+              isAllDone
+                ? "check-circle"
+                : currentSlot
+                  ? SLOT_CONFIG[currentSlot].icon
+                  : "pill"
+            }
+            size={24}
+            color={isAllDone ? theme.colors.primary : theme.colors.onPrimary}
           />
+          <Text
+            variant="titleMedium"
+            style={{
+              marginLeft: 8,
+              fontWeight: "bold",
+              color: isAllDone ? theme.colors.primary : theme.colors.onPrimary,
+            }}
+          >
+            {isAllDone
+              ? "오늘 복용 완료"
+              : `${currentSlot ? slotLabels[currentSlot] : ""} 복용하기`}
+          </Text>
         </TouchableOpacity>
+
+        {/* 진행 상태 인디케이터 (작은 점들) */}
+        {sortedSlots.length > 1 && (
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              marginTop: 12,
+              gap: 8,
+            }}
+          >
+            {sortedSlots.map((slot, index) => {
+              const isCompleted = completedTasks.includes(`${pillId}_${slot}`);
+              const isNext = index === nextSlotIndex;
+
+              return (
+                <View
+                  key={slot}
+                  style={{
+                    flexDirection: "row",
+                    alignItems: "center",
+                  }}
+                >
+                  <Icon
+                    source={isCompleted ? "check-circle" : "circle-outline"}
+                    size={14}
+                    color={
+                      isCompleted
+                        ? theme.colors.primary
+                        : isNext
+                          ? theme.colors.primary
+                          : theme.colors.outline
+                    }
+                  />
+                  <Text
+                    variant="labelSmall"
+                    style={{
+                      marginLeft: 4,
+                      color:
+                        isCompleted || isNext
+                          ? theme.colors.onSurface
+                          : theme.colors.outline,
+                      fontWeight: isNext ? "bold" : "normal",
+                    }}
+                  >
+                    {slotLabels[slot]}
+                  </Text>
+                </View>
+              );
+            })}
+          </View>
+        )}
       </View>
     );
   };
@@ -424,127 +421,105 @@ function PillListScreen() {
   };
 
   const renderPillItem = ({ item }: { item: RegisteredPill }) => {
+    // 1. 모든 슬롯 완료 여부 확인
     const allDone = item.slots.every((s) =>
       completedTasks.includes(`${item.id}_${s}`),
     );
+    const isExpanded = expandedPills.includes(item.id);
 
     return (
       <Card
         style={[
           styles.card,
-          !item.isActive && { opacity: 0.5 },
-          item.isActive && allDone && { backgroundColor: "#f0f0f0" },
+          !item.isActive && { opacity: 0.6 },
+          item.isActive &&
+            allDone && { backgroundColor: theme.colors.elevation.level1 },
         ]}
       >
-        <Card.Content style={styles.cardContent}>
-          <View style={{ width: "100%" }}>
-            <View
-              style={{
-                flexDirection: "row",
-                justifyContent: "space-between",
-                alignItems: "flex-start",
-                marginBottom: 8,
-              }}
+        <Card.Content style={{ paddingVertical: 12 }}>
+          {/* Header Row: Icon + Title + Actions */}
+          <View
+            style={{
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            {/* Left Area: Click to Expand */}
+            <TouchableOpacity
+              style={{ flexDirection: "row", alignItems: "center", flex: 1 }}
+              onPress={() => toggleExpand(item.id)}
+              activeOpacity={0.7}
             >
-              <View style={{ flex: 1, marginRight: 8 }}>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  <Text
-                    variant="headlineSmall"
-                    style={[
-                      styles.pillName,
-                      item.isActive &&
-                        allDone && {
-                          textDecorationLine: "line-through",
-                          color: "gray",
-                        },
-                      { flexShrink: 1 },
-                    ]}
-                  >
-                    {item.name}
-                  </Text>
-                </View>
-
-                {item.pillNames && item.pillNames.length > 0 && (
-                  <Text
-                    variant="titleSmall"
-                    style={{
-                      color: theme.colors.primary,
-                      marginTop: 4,
-                      fontWeight: "bold",
-                    }}
-                  >
-                    먹을 약 : {item.pillNames.join(", ")}
-                  </Text>
-                )}
-                {/* 제조사명 제거 */}
-                <Text
-                  variant="bodySmall"
-                  style={{
-                    color: theme.colors.onSurfaceVariant,
-                    marginTop: 4,
-                  }}
-                >
-                  요일 : {getDaysLabel(item.days)}
-                </Text>
-              </View>
-
-              {/* 설정 버튼 영역 */}
               <View
                 style={{
-                  alignItems: "flex-end",
-                  flexDirection: "column",
-                  minWidth: isEditMode ? 100 : 40,
+                  backgroundColor: item.isActive
+                    ? theme.colors.secondaryContainer
+                    : theme.colors.surfaceDisabled,
+                  borderRadius: 20,
+                  padding: 8,
+                  marginRight: 12,
                 }}
               >
-                {isEditMode ? (
-                  <View style={{ gap: 4 }}>
-                    <Button
-                      mode="outlined"
-                      icon="pencil"
-                      compact
-                      contentStyle={{ flexDirection: "row-reverse" }}
-                      onPress={() => openRenameDialog(item.id, item.name)}
-                    >
-                      이름 변경
-                    </Button>
-                    <Button
-                      mode="contained"
-                      icon="delete"
-                      buttonColor={theme.colors.error}
-                      compact
-                      contentStyle={{ flexDirection: "row-reverse" }}
-                      onPress={() => handleDeletePill(item.id)}
-                    >
-                      약 삭제
-                    </Button>
-                  </View>
-                ) : (
+                <Icon
+                  source="pill"
+                  size={24}
+                  color={
+                    item.isActive
+                      ? theme.colors.onSecondaryContainer
+                      : theme.colors.onSurfaceDisabled
+                  }
+                />
+              </View>
+
+              <View style={{ flex: 1 }}>
+                <Text
+                  variant="titleMedium"
+                  style={{
+                    fontWeight: "bold",
+                    textDecorationLine:
+                      item.isActive && allDone ? "line-through" : "none",
+                    color: item.isActive
+                      ? theme.colors.onSurface
+                      : theme.colors.onSurfaceDisabled,
+                  }}
+                >
+                  {item.name}
+                </Text>
+                {!isExpanded && (
+                  <Text
+                    variant="bodySmall"
+                    style={{ color: theme.colors.outline }}
+                  >
+                    {getDaysLabel(item.days)}
+                  </Text>
+                )}
+              </View>
+            </TouchableOpacity>
+
+            {/* Right Area: Controls */}
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              {isEditMode ? (
+                <>
+                  <IconButton
+                    icon="pencil"
+                    size={20}
+                    onPress={() => openRenameDialog(item.id, item.name)}
+                  />
+                  <IconButton
+                    icon="delete"
+                    iconColor={theme.colors.error}
+                    size={20}
+                    onPress={() => handleDeletePill(item.id)}
+                  />
+                </>
+              ) : (
+                <>
+                  {/* Alarm Toggle (Icon only) */}
                   <TouchableOpacity
                     onPress={() => togglePillActive(item.id, item.isActive)}
-                    style={{
-                      padding: 8,
-                      marginBottom: 4,
-                      flexDirection: "row",
-                      alignItems: "center",
-                      backgroundColor: item.isActive
-                        ? theme.colors.elevation.level1
-                        : "transparent",
-                      borderRadius: 20,
-                      paddingHorizontal: 12,
-                    }}
+                    style={{ padding: 4, marginRight: 4 }}
                   >
-                    <Text
-                      variant="labelMedium"
-                      style={{
-                        color: item.isActive
-                          ? theme.colors.primary
-                          : theme.colors.onSurfaceDisabled,
-                        marginRight: 8,
-                        fontWeight: "bold",
-                      }}
-                    >
-                      {item.isActive ? "켜짐" : "꺼짐"}
-                    </Text>
                     <Icon
                       source={item.isActive ? "bell-ring" : "bell-off"}
                       color={
@@ -552,17 +527,55 @@ function PillListScreen() {
                           ? theme.colors.primary
                           : theme.colors.onSurfaceDisabled
                       }
-                      size={24}
+                      size={20}
                     />
                   </TouchableOpacity>
-                )}
-              </View>
+
+                  {/* Chevron for expand/collapse */}
+                  <IconButton
+                    icon={isExpanded ? "chevron-up" : "chevron-down"}
+                    size={20}
+                    onPress={() => toggleExpand(item.id)}
+                  />
+                </>
+              )}
             </View>
+          </View>
 
-            <Divider style={{ marginBottom: 16, marginTop: 8 }} />
+          {/* Expanded Content: Details */}
+          {isExpanded && (
+            <View
+              style={{
+                marginTop: 12,
+                marginLeft: 10,
+                paddingLeft: 10,
+                borderLeftWidth: 2,
+                borderLeftColor: theme.colors.outlineVariant,
+              }}
+            >
+              {item.pillNames && item.pillNames.length > 0 && (
+                <Text
+                  variant="bodyMedium"
+                  style={{
+                    color: theme.colors.onSurface,
+                    marginBottom: 4,
+                  }}
+                >
+                  💊 {item.pillNames.join(", ")}
+                </Text>
+              )}
+              <Text
+                variant="bodySmall"
+                style={{ color: theme.colors.onSurfaceVariant }}
+              >
+                🗓 {getDaysLabel(item.days)}
+              </Text>
+            </View>
+          )}
 
-            {/* 시간대별 리스트 */}
-            <View>{renderSlotIcons(item.slots, item.id)}</View>
+          {/* Timeline Row */}
+          <View style={{ marginTop: 8 }}>
+            {renderSlotIcons(item.slots, item.id)}
           </View>
         </Card.Content>
       </Card>
